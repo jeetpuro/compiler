@@ -1,0 +1,13 @@
+main(): int {
+	volatile x : float := 1.0 / 7.0
+	volatile y : float := (10.0 + x) * 2.0
+	volatile z : float := y - x * x
+
+	print(x)
+	print(y)
+	print(z)
+
+	z := z * z
+	print(z)
+	return 0
+}

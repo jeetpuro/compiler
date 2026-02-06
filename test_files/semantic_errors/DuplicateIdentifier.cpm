@@ -1,0 +1,36 @@
+class DuplicateIdentifiers { //@error - semantic (Already Declared Class: 'DuplicateIdentifiers')
+  a: int
+  a: int //@error - semantic (Already Declared variable: 'a')
+
+  func(): boolean {
+    return true
+  }
+
+  func(): int { //@error - semantic (Already Declared Function: 'func')
+    return 1
+  }
+}
+
+class DuplicateIdentifiers { //@error - semantic (Already Declared Class: 'DuplicateIdentifiers')
+}
+
+class MyClass {
+  b: boolean
+  b: boolean //@error - semantic (Already Declared variable: 'b')
+
+  Pen(param: int, param: int): int { //@error - semantic (Already Declared parameter: 'param')
+    return 1
+  }
+
+  Pen2(param: int): int {
+    param: int //@error - semantic (Already Declared parameter: 'param')
+    return 1
+  }
+}
+
+main() : int {
+  print(DuplicateIdentifiers().func())
+  print(MyClass().Pen(1, 2))
+  print(MyClass().Pen2(3))
+  return 0
+}

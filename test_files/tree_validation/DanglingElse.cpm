@@ -1,0 +1,28 @@
+class AST {
+    TestIfElse : int() {
+      volatile A : boolean := false
+      volatile B : boolean := true
+  
+      // The following if-statements should generate the same tree.
+  
+      if (A)
+        if (B)
+          B := true
+        else
+          B := false
+  
+      if (A) {
+        if (B)
+          B := true
+        else
+          A := false
+      }
+  
+      return 1
+    }
+  }
+  
+  main() : int {
+    print(AST().TestIfElse())
+    return 0
+  }

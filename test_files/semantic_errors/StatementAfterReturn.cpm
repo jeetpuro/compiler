@@ -1,0 +1,14 @@
+class StatementAfterReturn {
+
+  getValue(): int {
+    value := 10
+    return value
+    print(value)   // @error - semantic (unreachable statement after return)
+  }
+
+}
+
+main() : int {
+  print(StatementAfterReturn().getValue())
+  return 0
+}

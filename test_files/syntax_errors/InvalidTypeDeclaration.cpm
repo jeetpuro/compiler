@@ -1,0 +1,11 @@
+class MyClass {
+  Init(): boolean {
+    int int //@error - syntax (invalid type declaration: identifier expected before ':')
+    return true
+  }
+}
+
+main() : int {
+  print(MyClass().Init())
+  return 0
+}

@@ -1,0 +1,107 @@
+class MyClass {
+  volatile a: int
+  volatile b: boolean
+  volatile c: int[]
+  volatile d: classdata
+
+  int aFunc() {
+    e := a //@error - semantic ('e' does not exist in the current scope)
+
+    a := d.yFunc() //@error - semantic ('a' and expression 'd.yFunc()' are of different types)
+    a := d.zFunc() //@error - semantic ('a' and expression 'd.zFunc()' are of different types)
+
+    return a
+  }
+
+  boolean bFunc() {
+    b := d.zzFunc() //@error - semantic ('zzFunc' does not exist)
+
+    a := d.xFunc()
+    b := zFunc() //@error - semantic ('zFunc' does not exist)
+
+    b := aFunc() //@error - semantic (type mismatch)
+    b := d.xFunc() //@error - semantic ('b' and expression 'd.xFunc()' are of different types)
+    b := d.zFunc() //@error - semantic ('b' and expression 'd.zFunc()' are of different types)
+
+    return b
+  }
+
+  int[] cFunc() {
+    c := d.xFunc() //@error - semantic ('c' and expression 'd.xFunc()' are of different types)
+    c := d.yFunc() //@error - semantic ('c' and expression 'd.yFunc()' are of different types)
+    return c
+  }
+
+  classdata dFunc() {
+    d := d.xFunc() //@error - semantic ('d' and expression 'd.xFunc()' are of different types)
+    d := d.yFunc() //@error - semantic ('d' and expression 'd.yFunc()' are of different types)
+    d := d.zFunc() //@error - semantic ('d' and expression 'd.zFunc()' are of different types)
+
+    d := d
+    return d
+  }
+
+  boolean EFUNC() {
+    a := b //@error - semantic ('a' and expression 'b' are of different types)
+    a := c //@error - semantic ('a' and expression 'c' are of different types)
+    a := d //@error - semantic ('a' and expression 'd' are of different types)
+
+    b := a //@error - semantic ('b' and expression 'a' are of different types)
+    b := c //@error - semantic ('b' and expression 'c' are of different types)
+    b := d //@error - semantic ('b' and expression 'd' are of different types)
+
+    c := a //@error - semantic ('c' and expression 'a' are of different types)
+    c := b //@error - semantic ('c' and expression 'b' are of different types)
+    c := d //@error - semantic ('c' and expression 'd' are of different types)
+
+    return false
+  }
+}
+
+class thatdoExist {
+  a: int
+}
+
+class classdata {
+  x: int
+  y: boolean
+  z: int[]
+
+  pem: classthatdoesntExist //@error - semantic ('classthatdoesntExist' is undefined)
+  pen: thatdoExist
+
+  int xFunc() {
+    return x
+  }
+
+  boolean yFunc() {
+    return y
+  }
+
+  int[] zFunc() {
+    return z
+  }
+}
+
+class VarUsedBeforeDefinition {
+  volatile a: int
+
+  int b(p: int) {
+    a := 10
+    p := 10 //@error - semantic (assignment to immutable parameter, if you enforce that rule)
+
+    c := 11 //@error - semantic ('c' is not defined yet)
+    c: int
+
+    return a
+  }
+}
+
+main() : int {
+  print(MyClass().aFunc())
+  print(MyClass().bFunc())
+  print(MyClass().cFunc())
+  print(MyClass().dFunc())
+  print(MyClass().EFUNC())
+  return 0
+}

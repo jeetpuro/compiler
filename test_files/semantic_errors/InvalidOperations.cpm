@@ -1,0 +1,64 @@
+class MyClass {
+  volatile i1: int
+  i2: int
+  volatile b1: boolean
+  b2: boolean
+  volatile ia1: int[]
+  ia2: int[]
+  c1: ClassDatatest
+  c2: ClassDatatest
+
+  semantically_incorrect_expressions(): boolean {
+
+    i1 := i1 + b1 //@error - semantic (invalid operand type: int + boolean)
+    i1 := i1 + ia1 //@error - semantic (invalid operand type: int + int[])
+    i1 := i1 + c1 //@error - semantic (invalid operand type: int + ClassDatatest)
+
+    i1 := b1 + b1 //@error - semantic (invalid operand type: boolean + boolean)
+    i1 := ia1 + ia1 //@error - semantic (invalid operand type: int[] + int[])
+    i1 := ia1 + ia1[0] //@error - semantic (invalid operand type: int[] + int)
+    i1 := c1 + c1 //@error - semantic (invalid operand type: ClassDatatest + ClassDatatest)
+
+    i1 := c1 & c1 //@error - semantic (invalid operand type for '&': expected boolean operands; also type mismatch int := boolean)
+    i1 := c1 | c1 //@error - semantic (invalid operand type for '|': expected boolean operands; also type mismatch)
+    i1 := c1 < c1 //@error - semantic (invalid operand type for '<': expected numeric operands)
+
+    b1 := b1 + b1 //@error - semantic (invalid operand type: boolean + boolean)
+    b1 := b1 + ia1 //@error - semantic (invalid operand type: boolean + int[])
+    b1 := b1 & ia1 //@error - semantic (invalid operand type for '&': boolean & int[])
+    b1 := b1 = c1 //@error - semantic (invalid operand type for '=': boolean = ClassDatatest)
+
+    ia1 := ia1 + ia2 //@error - semantic (invalid operand type: int[] + int[])
+    ia1 := ia1 & ia2 //@error - semantic (invalid operand type for '&': int[] & int[])
+
+    b1 := b1 < b2 //@error - semantic (invalid operand type for '<': boolean < boolean)
+    b1 := !i1 //@error - semantic (invalid operand type for '!': expected boolean)
+
+    return true
+  }
+
+  operator_test_work(): boolean {
+    // correct examples (should pass semantic checks)
+    i1 := i1 + i2
+    i1 := ia1[1] + ia2[2]
+    i1 := c1.get_trash()[2] + i2
+    b1 := b1 & b2
+    b1 := i1 < i2
+    return true
+  }
+}
+
+class ClassDatatest {
+  trash: int[]
+
+  get_trash(): int[] {
+    return trash
+  }
+}
+
+main() : int {
+  print(MyClass().semantically_incorrect_expressions())
+  print(MyClass().operator_test_work())
+  print(ClassDatatest().get_trash())
+  return 0
+}

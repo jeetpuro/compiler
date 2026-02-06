@@ -1,0 +1,7 @@
+main(): int {
+  print("Hello") //@error - lexical ('"' is not recognized by the C+- lexer)
+  print(status%) //@error - lexical ('%' is not recognized by the C+- lexer)
+  print($invalid) //@error - lexical ('$' is not allowed in identifiers)
+  boole@n flag //@error - lexical ('@' is not recognized by the C+- lexer)
+  return 0
+}

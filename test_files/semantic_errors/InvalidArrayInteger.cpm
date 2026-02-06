@@ -1,0 +1,31 @@
+class A {
+
+  a1(num: int): A {
+    num_aux: int[]
+
+    num_aux[false] := 2 //@error - semantic (invalid type of array index)
+
+    if (num_aux[a2()] < 1) { //@error - semantic (invalid type of array index)
+      num_aux[0] := 1
+    } else {
+      num_aux := a2() //@error - semantic (type mismatch: int[] := int)
+    }
+
+    num_aux[3] := num.length //@error - semantic (member .length is used incorrectly)
+
+    return this //@error - semantic (invalid use of 'this' in C+-)
+  }
+
+  a2(): int {
+    a: int
+    a[0] := 2 //@error - semantic (trying to use int as int array)
+    return a
+  }
+
+}
+
+main() : int {
+  print(A().a1(1))
+  print(A().a2())
+  return 0
+}

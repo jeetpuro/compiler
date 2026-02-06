@@ -1,0 +1,14 @@
+main(): int {
+  volatile n : int
+  read(n)
+
+  volatile x : int := 1
+  volatile i : int := 2
+
+  for (i := 2, i <= n, i := i + 1) {
+    x := x * i
+  }
+
+  print(x)
+  return 0
+}

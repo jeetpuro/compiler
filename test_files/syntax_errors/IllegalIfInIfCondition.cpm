@@ -1,0 +1,12 @@
+class MyClass {
+  Init() : boolean {
+    if (if (true)) {   //@error - syntax (illegal boolean condition)
+    }
+    return true
+}
+
+main() : int {
+  print(MyClass().Init())
+  return 0
+}
+}

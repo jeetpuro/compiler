@@ -1,0 +1,10 @@
+class MyClass {
+  Init(): boolean {
+    print(int) //@error - syntax (invalid print statement: type used as expression)
+  }
+}
+
+main() : int {
+  print(MyClass().Init())
+  return 0
+}

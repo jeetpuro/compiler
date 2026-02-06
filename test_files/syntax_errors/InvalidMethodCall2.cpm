@@ -1,0 +1,14 @@
+class MyClass {
+  Init(): boolean {
+    volatile test: int
+
+    test := Init //@error - syntax (missing argument list in method call)
+
+    return false
+  }
+}
+
+main() : int {
+  print(MyClass().Init())
+  return 0
+}

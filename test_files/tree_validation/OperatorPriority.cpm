@@ -1,0 +1,33 @@
+class OP {
+
+  arithmetic : int() {
+    volatile b : int := 4
+    volatile c : int := 8
+    volatile ret : int
+
+    // The following statements should generate the same tree
+    ret := 1 + 18 * 3 - b + c * 9
+    ret := 1 + (18 * 3) - b + (c * 9)
+
+    return ret
+  }
+
+  relational : boolean() {
+    a : int := 10
+    b : int := 12
+    c : boolean := true
+    d : boolean := false
+    volatile ret : boolean
+
+    // The following statements should generate the same tree
+    ret := a < b & !d | d = !c
+    ret := ((a < b) & (!d)) | (d = (!c))
+
+    return ret
+  }
+}
+
+main() : int {
+  print(OP().arithmetic())
+  return 0
+}

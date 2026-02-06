@@ -1,0 +1,85 @@
+class QS {
+
+  volatile number : int[]
+  volatile size : int
+
+  Start(sz : int): int {
+    volatile aux : int
+
+    aux := Init(sz)
+    aux := Print()
+    print(9999)
+
+    aux := size - 1
+    aux := Sort(0, aux)
+
+    aux := Print()
+    return 0
+  }
+
+  Sort(left : int, right : int): int {
+    volatile v : int
+    volatile i : int
+    volatile j : int
+    volatile t : int
+    volatile aux : int
+    volatile cont : boolean
+
+    if (left < right) {
+      v := number[right]
+      i := left - 1
+      j := right
+      cont := true
+
+      for ( , cont , cont := cont ) {
+
+        for ( , true , cont := cont ) {
+          i := i + 1
+          aux := number[i]
+          if (!(aux < v)) break
+        }
+
+        for ( , true , cont := cont ) {
+          j := j - 1
+          aux := number[j]
+          if (!(v < aux)) break
+        }
+
+        t := number[i]
+        number[i] := number[j]
+        number[j] := t
+
+        if (j < (i + 1)) cont := false
+      }
+
+      number[j] := number[i]
+      number[i] := number[right]
+      number[right] := t
+    }
+
+    return 0
+  }
+
+  Print(): int {
+    volatile j : int
+
+    for ( j := 0 , j < size , j := j + 1 ) {
+      print(number[j])
+    }
+
+    return 0
+  }
+
+  Init(sz : int): int {
+    size := sz
+    number := int[20,7,12,18,2,11,6,9,19,5]
+    return 0
+  }
+}
+
+main(): int {
+  volatile qs : QS := QS()
+  volatile r : int := qs.Start(10)
+  print(r)
+  return 0
+}

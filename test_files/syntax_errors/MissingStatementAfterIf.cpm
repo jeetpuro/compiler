@@ -1,0 +1,13 @@
+class MissingStatementAfterIf {
+
+  test(): boolean {
+    if (true)
+    // @error - syntax (missing statement after if)
+  }
+
+}
+
+main() : int {
+  print(MissingStatementAfterIf().test())
+  return 0
+}

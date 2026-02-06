@@ -1,0 +1,12 @@
+class MissingMethodBraces {
+
+  Init(): int
+    number := 4        // @error - syntax (missing opening and closing braces for method body)
+    print(number)
+
+}
+
+main() : int {
+  print(MissingMethodBraces().Init())
+  return 0
+}

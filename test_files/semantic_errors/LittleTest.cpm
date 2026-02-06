@@ -1,0 +1,77 @@
+class MyClass {
+  volatile x: Element
+  volatile a: int
+  volatile c: boolean
+  d: boolean
+  e: int[]
+
+  func(): int {
+    newVar: int[]
+
+    // --- undefined type / wrong type name ---
+    y: element //@error - semantic ('element' is not a valid Class/type)
+
+    // --- type mismatch assignments ---
+    c := x //@error - semantic (type mismatch: boolean := Element)
+
+    // --- valid arithmetic + valid array indexing ---
+    a := 2 * e[3 * 5]
+
+    // --- using array variable before initialization is semantic (optional rule) ---
+    newVar[3] := 0 //@error - semantic (array variable 'newVar' may be uninitialized)
+
+    // --- .length is only valid on arrays ---
+    a := e.length
+
+    a := a.length //@error - semantic (member .length used on non-array)
+
+    x := e.length //@error - semantic (type mismatch: Element := int)
+
+    // --- invalid array index type ---
+    a := e[true] //@error - semantic (invalid type of array index: expected int, got boolean)
+
+    // --- method call checks ---
+    return x.InInt() //@error - semantic (wrong number of parameters: expected 1)
+  }
+
+  func2(): int {
+    return x.InInt(1)
+  }
+}
+
+class Element {
+  a: int
+  b: boolean
+  c: Element
+
+  InInt(x: int): int {
+    return a
+  }
+
+  InInt2(x: int): int {
+    return x + 1
+  }
+
+  InClass(): Element {
+    return c
+  }
+
+  InBool(): boolean {
+    return true
+  }
+
+  InBool2(): boolean {
+    return b
+  }
+}
+
+main() : int {
+  print(MyClass().func())
+  print(MyClass().func2())
+  print(Element().InInt(1))
+  print(Element().InInt2(1))
+  print(Element().InClass())
+  print(Element().InBool())
+  print(Element().InBool2())
+  return 0
+}

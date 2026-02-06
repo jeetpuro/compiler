@@ -1,0 +1,6 @@
+class 12 {        //@error - syntax (illegal class name)
+}
+
+main() : int {
+  return 0
+}

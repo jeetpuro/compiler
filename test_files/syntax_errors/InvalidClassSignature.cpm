@@ -1,0 +1,11 @@
+class MyClass = myClass { //@error - syntax (invalid class signature)
+  Init(): boolean {
+    Age := v_Age
+    return true
+  }
+}
+
+main() : int {
+  print(MyClass().Init())
+  return 0
+}

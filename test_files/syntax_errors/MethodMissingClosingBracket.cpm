@@ -1,0 +1,13 @@
+class MyClass {
+  Init(): boolean {
+    age := v_age
+    return true
+}
+// @error - syntax (missing closing bracket for method)
+
+class B {}
+
+main() : int {
+  print(MyClass().Init())
+  return 0
+}

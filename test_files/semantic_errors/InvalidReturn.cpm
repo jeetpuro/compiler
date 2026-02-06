@@ -1,0 +1,49 @@
+class classtest {
+  a: int
+}
+
+class MyClass {
+  x: int
+  y: boolean
+  z: int[]
+  xyz: MyClass
+
+  xyFunc(): int { //@error - semantic (invalid return type: expected int, got boolean)
+    return y
+  }
+
+  xzFunc(): int { //@error - semantic (invalid return type: expected int, got int[])
+    return z
+  }
+
+  yxFunc(): boolean { //@error - semantic (invalid return type: expected boolean, got int)
+    return x
+  }
+
+  yzFunc(): boolean { //@error - semantic (invalid return type: expected boolean, got int[] from zxFunc)
+    return zxFunc()
+  }
+
+  zxFunc(): int[] { //@error - semantic (invalid return type: expected int[], got int)
+    return x
+  }
+
+  zyFunc(): int[] { //@error - semantic (invalid return type: expected int[], got boolean from yxFunc)
+    return yxFunc()
+  }
+
+  swFunc(): int {
+    return z[yzFunc()] //@error - semantic (invalid array index type in return: expected int, got boolean)
+  }
+}
+
+main() : int {
+  print(MyClass().xyFunc())
+  print(MyClass().xzFunc())
+  print(MyClass().yxFunc())
+  print(MyClass().yzFunc())
+  print(MyClass().zxFunc())
+  print(MyClass().zyFunc())
+  print(MyClass().swFunc())
+  return 0
+}

@@ -1,0 +1,17 @@
+class MyClass {
+   Init(): boolean {
+    volatile test: int
+
+    test := Bar(, a) //@error - syntax (empty argument before comma in argument list)
+    return false
+  }
+
+  Bar(, b: boolean): int { //@error - syntax (empty parameter before comma in parameter list)
+    return 1
+  }
+}
+
+main() : int {
+  print(MyClass().Init())
+  return 0
+}

@@ -1,0 +1,14 @@
+class UnmatchedParentheses {
+
+  test(): void {
+    result := (10 * (5 + 3)
+    //@error - syntax (unmatched parentheses in expression)
+    print(result)
+  }
+
+}
+
+main() : int {
+  print(UnmatchedParentheses().test())
+  return 0
+}

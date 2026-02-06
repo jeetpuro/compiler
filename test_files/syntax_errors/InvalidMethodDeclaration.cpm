@@ -1,0 +1,10 @@
+class MyClass {
+    volatile testMethod(): int { //@error - syntax (illegal access modifier)
+        return 1
+    }
+}
+
+main() : int {
+  print(MyClass().testMethod())
+  return 0
+}

@@ -1,0 +1,14 @@
+main(): int {
+  volatile n : int
+  read(n)
+
+  volatile i : int := 2
+
+  for (i := 2, i <= n, i := i + 1) {
+    if ( (n / i) * i = n ) {
+      print(i)
+      print(n)
+    }
+  }
+  return 0
+}
