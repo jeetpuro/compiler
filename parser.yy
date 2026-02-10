@@ -24,11 +24,13 @@
 /* Token definitions for the grammar */
 /* Tokens represent the smallest units of the language, like operators and parentheses */
 %token <std::string> PLUSOP MINUSOP MULTOP INT FLOAT LP RP ID FOR INT_EXPR FLOAT_EXPR
-LB RB DOT COMMA
+LB RB CLB CRB DOT COMMA COLON
 IF ELSE PRINT READ RETURN BREAK CONTINUE
 AND OR LESSOP MOREOP LESSEQOP MOREEQOP COMPOP NOTEQOP DIVOP POWEROP NEGATIONOP ASSIGNOP
 TRUE FALSE
 NEWLINE
+CLASS MAIN VOLATILE
+
 
 %token END 0 "end of file"
 
@@ -46,8 +48,13 @@ NEWLINE
 /* Grammar rules section */
 /* This section defines the production rules for the language being parsed */
 %%
-root:       expression {root = $1;};
+root:       expression  {root = $1;}
+            | expression NEWLINE {root = $1;}
+            | NEWLINE expression  {root = $2;};
+            
 
+
+          
 expression: expression PLUSOP expression {      /*
                                                   Create a subtree that corresponds to the AddExpression
                                                   The root of the subtree is AddExpression
@@ -74,10 +81,12 @@ expression: expression PLUSOP expression {      /*
             | factor      {$$ = $1;  /*printf("r4 ");*/}
             ;
 
+
+stmt: PRINT LP expression RP {}
+
 factor: 
             INT                 {  $$ = new Node("Int", $1, yylineno); /* printf("r5 ");  Here we create a leaf node Int. The value of the leaf node is $1 */}
             | FLOAT             {  $$ = new Node("Float", $1, yylineno); /* printf("r5.1 "); */}
-            | LP expression RP  { $$ = $2; /* printf("r6 ");  simply return the expression */}
+            | LP expression RP  {  $$ = $2; /* printf("r6 ");  simply return the expression */}
             | ID                {  $$ = new Node("ID", $1, yylineno); /* printf("r7 ");*/}
     ;
-    
