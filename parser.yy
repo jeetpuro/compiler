@@ -51,6 +51,8 @@ CLASS MAIN VOLATILE
 root:       expression  {root = $1;}
             | expression NEWLINE {root = $1;}
             | NEWLINE expression  {root = $2;};
+            | stmt {root = $1;}
+            
             
 
 
@@ -82,7 +84,10 @@ expression: expression PLUSOP expression {      /*
             ;
 
 
-stmt: PRINT LP expression RP {}
+stmt: PRINT LP expression RP {
+  $$ = new Node("PrintStatement", "", yylineno);
+  $$->children.push_back($3);
+};
 
 factor: 
             INT                 {  $$ = new Node("Int", $1, yylineno); /* printf("r5 ");  Here we create a leaf node Int. The value of the leaf node is $1 */}
