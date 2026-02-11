@@ -43,7 +43,7 @@ CLASS MAIN VOLATILE
 
 /* Specify types for non-terminals in the grammar */
 /* The type specifies the data type of the values associated with these non-terminals */
-%type <Node *> root expression factor
+%type <Node *> root expression factor stmt
 
 /* Grammar rules section */
 /* This section defines the production rules for the language being parsed */
@@ -52,6 +52,7 @@ root:       expression  {root = $1;}
             | expression NEWLINE {root = $1;}
             | NEWLINE expression  {root = $2;};
             | stmt {root = $1;}
+            | NEWLINE stmt {root = $2;}
             
             
 
@@ -84,10 +85,36 @@ expression: expression PLUSOP expression {      /*
             ;
 
 
-stmt: PRINT LP expression RP {
+stmt: PRINT LP expression RP NEWLINE {
   $$ = new Node("PrintStatement", "", yylineno);
   $$->children.push_back($3);
-};
+}
+| READ LP expression RP NEWLINE {
+  $$ = new Node("ReadStatement", "", yylineno);
+  $$->children.push_back($3);
+}
+| RETURN expression NEWLINE {
+  $$ = new Node("ReturnStatement", "", yylineno);
+  $$->children.push_back($2);
+}
+| BREAK NEWLINE {
+  $$ = new Node("BreakStatement", "", yylineno);
+}
+| CONTINUE NEWLINE {
+  $$ = new Node("ContinueStatement", "", yylineno);
+}
+| IF LP expression RP stmt {
+  $$ = new Node("IfStatement", "", yylineno);
+  $$->children.push_back($3);
+  $$->children.push_back($5);
+}
+| IF LP expression RP stmt ELSE stmt {
+  $$ = new Node("IfElseStatement", "", yylineno);
+  $$->children.push_back($3);
+  $$->children.push_back($5);
+  $$->children.push_back($7);
+}
+;
 
 factor: 
             INT                 {  $$ = new Node("Int", $1, yylineno); /* printf("r5 ");  Here we create a leaf node Int. The value of the leaf node is $1 */}
