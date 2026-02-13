@@ -1,0 +1,3 @@
+// filepath: /root/compiler/getting_started/.gitignore
+.DS_Store
+*:Zone.Identifier

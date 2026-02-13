@@ -43,18 +43,14 @@ CLASS MAIN VOLATILE
 
 /* Specify types for non-terminals in the grammar */
 /* The type specifies the data type of the values associated with these non-terminals */
-%type <Node *> root expression factor stmt
+%type <Node *> root expression factor stmt 
 
 /* Grammar rules section */
 /* This section defines the production rules for the language being parsed */
 %%
-root:       expression  {root = $1;}
-            | expression NEWLINE {root = $1;}
-            | NEWLINE expression  {root = $2;};
-            | stmt {root = $1;}
-            | NEWLINE stmt {root = $2;}
-            
-            
+root:     stmt       {root = $1;}
+          ;
+          
 
 
           
@@ -85,14 +81,18 @@ expression: expression PLUSOP expression {      /*
             ;
 
 
-stmt: PRINT LP expression RP NEWLINE {
-  $$ = new Node("PrintStatement", "", yylineno);
-  $$->children.push_back($3);
-}
-| READ LP expression RP NEWLINE {
-  $$ = new Node("ReadStatement", "", yylineno);
-  $$->children.push_back($3);
-}
+stmt:       PRINT LP expression RP {
+                          $$ = new Node("PrintStatement", "", yylineno);
+                          $$->children.push_back($3);
+                          }
+
+
+/*
+          | READ LP expression RP NEWLINE {
+                          $$ = new Node("ReadStatement", "", yylineno);
+                          $$->children.push_back($3);
+                          }
+
 | RETURN expression NEWLINE {
   $$ = new Node("ReturnStatement", "", yylineno);
   $$->children.push_back($2);
@@ -114,11 +114,15 @@ stmt: PRINT LP expression RP NEWLINE {
   $$->children.push_back($5);
   $$->children.push_back($7);
 }
+*/
+| expression {$$ = $1;}
 ;
 
 factor: 
-            INT                 {  $$ = new Node("Int", $1, yylineno); /* printf("r5 ");  Here we create a leaf node Int. The value of the leaf node is $1 */}
+             INT                {  $$ = new Node("Int", $1, yylineno); /* printf("r5 ");  Here we create a leaf node Int. The value of the leaf node is $1 */}
             | FLOAT             {  $$ = new Node("Float", $1, yylineno); /* printf("r5.1 "); */}
             | LP expression RP  {  $$ = $2; /* printf("r6 ");  simply return the expression */}
             | ID                {  $$ = new Node("ID", $1, yylineno); /* printf("r7 ");*/}
     ;
+
+%%
