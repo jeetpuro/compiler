@@ -1,1 +1,1 @@
-print(he_js)
+if (10+1) 19-1 else 9
