@@ -1,1 +1,5 @@
-main(): int {  if (201) print("4") else 82 } //@error - lexical ('"' is not recognized by the C+- lexer) 
+main(): int { 
+
+    float
+
+    } //@

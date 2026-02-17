@@ -23,7 +23,7 @@
 
 /* Token definitions for the grammar */
 /* Tokens represent the smallest units of the language, like operators and parentheses */
-%token <std::string> PLUSOP MINUSOP MULTOP INT FLOAT STRING LP RP ID FOR INT_EXPR FLOAT_EXPR
+%token <std::string> PLUSOP MINUSOP MULTOP INT FLOAT STRING LP RP ID FOR INT_EXPR FLOAT_EXPR BOOL_EXPR
 LB RB CLB CRB DOT COMMA COLON
 IF ELSE PRINT READ RETURN BREAK CONTINUE 
 AND OR LESSOP MOREOP LESSEQOP MOREEQOP COMPOP NOTEQOP DIVOP POWEROP NEGATIONOP ASSIGNOP
@@ -46,19 +46,53 @@ CLASS MAIN VOLATILE
 
 /* Specify types for non-terminals in the grammar */
 /* The type specifies the data type of the values associated with these non-terminals */
-%type <Node *> root expression factor stmt stmts entry
+%type <Node *> root expression factor stmt 
+stmts entry stmtBl expressions baseType type
 
 /* Grammar rules section */
 /* This section defines the production rules for the language being parsed */
 %%
+
+
+/*
+program 
+class 
+entry
+method 
+var   
+type  
+baseType 
+*/
+
 root:     entry       {root = $1;}
           ;
-          
 
-/*AHAA NEW LINE ÄR VÅRT ";". SÅ VI MÅSTE HA NEWLINE NÄR DET ÄR NY SAK.
-DVS VI KAN INTE HA: "X=1+2 Y = 14 PRINT(DICK)*/
+        
+type:            baseType 
 
+baseType:         INT_EXPR {
+                     $$ = new Node("BaseType", "int", yylineno); 
+                }
+                | FLOAT_EXPR {
+                    $$ = new Node("BaseType", "float", yylineno);
+                }
 
+                | BOOL_EXPR {
+                    $$ = new Node("BaseType", "boolean", yylineno); 
+                }
+                ;
+
+expressions:      expression{ 
+                $$ = new Node("expression", "", yylineno);
+                $$->children.push_back($1);
+            }
+            | expressions expression NEWLINE{ 
+                $1->children.push_back($2);
+                $$ = $1;
+            }
+;
+
+         
 
 expression: expression PLUSOP expression {      /*
                                                   Create a subtree that corresponds to the AddExpression
@@ -88,6 +122,21 @@ expression: expression PLUSOP expression {      /*
             | factor      {$$ = $1;  /*printf("r4 ");*/}
             ;
 
+factor: 
+             INT                {  $$ = new Node("Int", $1, yylineno); /* printf("r5 ");  Here we create a leaf node Int. The value of the leaf node is $1 */}
+            | FLOAT             {  $$ = new Node("Float", $1, yylineno); /* printf("r5.1 "); */}
+            | STRING            {  
+                                  std::string s = $1;
+                                  if (s.size() >= 2 && s.front() == '"' && s.back() == '"') {
+                                      s = s.substr(1, s.size() - 2);
+                                  }
+                                  $$ = new Node("String", s, yylineno); 
+                                }
+
+            | LP expression RP  {  $$ = $2; /* printf("r6 ");  simply return the expression */}
+            | ID                {  $$ = new Node("ID", $1, yylineno); /* printf("r7 ");*/}
+            /*boools kommer in här med, typ 2<5 är en bool expr*/
+    ;
 
 stmt:       PRINT LP expression RP {
                           $$ = new Node("PrintStatement", "", yylineno);
@@ -120,22 +169,31 @@ stmt:       PRINT LP expression RP {
                               $$->children.push_back($7);
                             }
 
-            | expression {$$ = $1;}
+
+            | expressions {$$ = $1;}
             ;
 
-stmts:      stmt { 
+stmts:      stmt NEWLINE{ 
                 $$ = new Node("Statements", "", yylineno);
                 $$->children.push_back($1);
             }
-            | stmts stmt { 
+            | stmts stmt NEWLINE{ 
                 $1->children.push_back($2);
                 $$ = $1;
             }
-            ;     
+;
 
-entry:      MAIN LP RP COLON INT_EXPR CLB stmts CRB {
+stmtBl:     CLB NEWLINE stmts CRB {  /*statments Boys Love*/
+                 $$ = $3;
+            }
+            | CLB  stmts CRB {
+              $$ = $2;
+            }
+
+
+entry:      MAIN LP RP COLON INT_EXPR stmtBl {
                         $$ = new Node("MainStatement", "", yylineno);
-                        $$->children.push_back($7);
+                        $$->children.push_back($6);
                         }
             ;
 
@@ -147,37 +205,7 @@ entry:      MAIN LP RP COLON INT_EXPR CLB stmts CRB {
                           $$->children.push_back($3);
                           }
 
-| CONTINUE NEWLINE {
-  $$ = new Node("ContinueStatement", "", yylineno);
-}
-| IF LP expression RP stmt {
-  $$ = new Node("IfStatement", "", yylineno);
-  $$->children.push_back($3);
-  $$->children.push_back($5);
-}
-| IF LP expression RP stmt ELSE stmt {
-  $$ = new Node("IfElseStatement", "", yylineno);
-  $$->children.push_back($3);
-  $$->children.push_back($5);
-  $$->children.push_back($7);
-}
+
 */
-
-
-factor: 
-             INT                {  $$ = new Node("Int", $1, yylineno); /* printf("r5 ");  Here we create a leaf node Int. The value of the leaf node is $1 */}
-            | FLOAT             {  $$ = new Node("Float", $1, yylineno); /* printf("r5.1 "); */}
-            | STRING            {  
-                                  std::string s = $1;
-                                  if (s.size() >= 2 && s.front() == '"' && s.back() == '"') {
-                                      s = s.substr(1, s.size() - 2);
-                                  }
-                                  $$ = new Node("String", s, yylineno); 
-                                }
-
-            | LP expression RP  {  $$ = $2; /* printf("r6 ");  simply return the expression */}
-            | ID                {  $$ = new Node("ID", $1, yylineno); /* printf("r7 ");*/}
-            /*boools kommer in här med, typ 2<5 är en bool expr*/
-    ;
 
 %%
