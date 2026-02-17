@@ -40,6 +40,7 @@
 "for"                   {if(USE_LEX_ONLY) {printf("FOR ");} else {return yy::parser::make_FOR(yytext);}}
 "int"                   {if(USE_LEX_ONLY) {printf("INT_EXPR ");} else {return yy::parser::make_INT_EXPR(yytext);}}
 "float"                 {if(USE_LEX_ONLY) {printf("FLOAT_EXPR ");} else {return yy::parser::make_FLOAT_EXPR(yytext);}}
+\"[^\"]*\"              {if(USE_LEX_ONLY) {printf("STRING ");} else {return yy::parser::make_STRING(yytext);}}
 "if"                    {if(USE_LEX_ONLY) {printf("IF ");} else {return yy::parser::make_IF(yytext);}}
 "else"                  {if(USE_LEX_ONLY) {printf("ELSE ");} else {return yy::parser::make_ELSE(yytext);}}
 "print"                 {if(USE_LEX_ONLY) {printf("PRINT ");} else {return yy::parser::make_PRINT(yytext);}}

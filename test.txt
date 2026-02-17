@@ -1,1 +1,1 @@
-if (10+1) 19-1 else 9
+main(): int {  if (201) print("4") else 82 } //@error - lexical ('"' is not recognized by the C+- lexer) 
