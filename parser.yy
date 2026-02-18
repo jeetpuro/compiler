@@ -23,7 +23,7 @@
 
 /* Token definitions for the grammar */
 /* Tokens represent the smallest units of the language, like operators and parentheses */
-%token <std::string> PLUSOP MINUSOP MULTOP INT FLOAT STRING LP RP ID FOR INT_EXPR FLOAT_EXPR BOOL_EXPR
+%token <std::string> PLUSOP MINUSOP MULTOP INT FLOAT STRING LP RP ID FOR INT_EXPR FLOAT_EXPR VOID BOOL_EXPR
 LB RB CLB CRB DOT COMMA COLON
 IF ELSE PRINT READ RETURN BREAK CONTINUE 
 AND OR LESSOP MOREOP LESSEQOP MOREEQOP COMPOP NOTEQOP DIVOP POWEROP NEGATIONOP ASSIGNOP
@@ -47,7 +47,7 @@ CLASS MAIN VOLATILE
 /* Specify types for non-terminals in the grammar */
 /* The type specifies the data type of the values associated with these non-terminals */
 %type <Node *> root expression factor stmt 
-stmts entry stmtBl expressions baseType type
+stmts entry stmtBl expressions baseType type var
 
 /* Grammar rules section */
 /* This section defines the production rules for the language being parsed */
@@ -67,20 +67,61 @@ baseType
 root:     entry       {root = $1;}
           ;
 
-        
-type:            baseType 
+
+
+var:            VOLATILE ID COLON type ASSIGNOP expression {
+                /* volatile variable with initialization*/
+                $$ = new Node("VarDecl", $2, yylineno);
+                $$->value = "volatile";
+                $$->children.push_back($4); /* child 0: type */
+                $$->children.push_back($6); /* child 1: initialization expression */
+                }
+                | VOLATILE ID COLON type {
+                    /* volatile variable without initialization */
+                    $$ = new Node("VarDecl", $2, yylineno);
+                    $$->value = "volatile";
+                    $$->children.push_back($4); /* child 0: type */
+                }
+                | ID COLON type ASSIGNOP expression {
+                    /* normal variable with initialization */
+                    $$ = new Node("VarDecl", $1, yylineno);
+                    $$->children.push_back($3); /* child 0: type */
+                    $$->children.push_back($5); /* child 1: initialization expression */
+                }
+                | ID COLON type {
+                    /* normal variable without initialization */
+                    $$ = new Node("VarDecl", $1, yylineno);
+                    $$->children.push_back($3); /* child 0: type */
+                }
+                ;
+                
+type:            baseType LB RB {
+                    $$ = new Node("ArrayType", "", yylineno);
+                    $$->children.push_back($1);
+                }
+                |  baseType {
+                    $$ = $1;
+                }
+                |  ID {
+                    $$ = new Node("UserType", $1, yylineno);
+                }
+                |  VOID {
+                    $$ = new Node("VoidType", "", yylineno);
+                }
+                ;
 
 baseType:         INT_EXPR {
-                     $$ = new Node("BaseType", "int", yylineno); 
+                     $$ = new Node("IntType", "int", yylineno); 
                 }
                 | FLOAT_EXPR {
-                    $$ = new Node("BaseType", "float", yylineno);
+                    $$ = new Node("FloatType", "float", yylineno);
                 }
 
                 | BOOL_EXPR {
-                    $$ = new Node("BaseType", "boolean", yylineno); 
+                    $$ = new Node("BoolType", "boolean", yylineno); 
                 }
                 ;
+
 
 expressions:      expression{ 
                 $$ = new Node("expression", "", yylineno);
@@ -135,8 +176,12 @@ factor:
 
             | LP expression RP  {  $$ = $2; /* printf("r6 ");  simply return the expression */}
             | ID                {  $$ = new Node("ID", $1, yylineno); /* printf("r7 ");*/}
+            | TRUE              {  $$ = new Node("Bool", $1, yylineno); }
+            | FALSE             {  $$ = new Node("Bool", $1, yylineno); }
+            
             /*boools kommer in här med, typ 2<5 är en bool expr*/
-    ;
+            ;
+
 
 stmt:       PRINT LP expression RP {
                           $$ = new Node("PrintStatement", "", yylineno);
@@ -171,6 +216,9 @@ stmt:       PRINT LP expression RP {
 
 
             | expressions {$$ = $1;}
+            
+            | var {$$ = $1;}
+
             ;
 
 stmts:      stmt NEWLINE{ 
