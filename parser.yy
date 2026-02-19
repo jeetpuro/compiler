@@ -47,7 +47,8 @@ CLASS MAIN VOLATILE
 /* Specify types for non-terminals in the grammar */
 /* The type specifies the data type of the values associated with these non-terminals */
 %type <Node *> root expression factor stmt 
-stmts entry stmtBl expressions baseType type var
+stmts entry stmtBl expressions baseType type var vars
+method params class 
 
 /* Grammar rules section */
 /* This section defines the production rules for the language being parsed */
@@ -67,7 +68,54 @@ baseType
 root:     entry       {root = $1;}
           ;
 
+program
 
+class:          CLASS ID CLB vars method CRB {
+                $$ = new Node("Class", "", yylineno);
+                $$->children.push_back($4);
+                $$->children.push_back($5);
+                }
+
+
+vars:            var {
+                    $$ = new Node("VarDecl", "", yylineno);
+                    $$->children.push_back($1);
+                }
+
+                | vars var {
+                    $$ = new Node("VarDecl", "", yylineno);
+                    $$->children.push_back($2);
+                }
+
+method:         ID LP params RP COLON type stmtBl {
+                    $$ = new Node("Method", $1, yylineno);
+                    $$->children.push_back($3); /* params */
+                    $$->children.push_back($6); /* return type */
+                    $$->children.push_back($7); /* body */
+                }
+                | ID LP RP COLON type stmtBl {
+                    /* no parameters */
+                    $$ = new Node("Method", $1, yylineno);
+                    $$->children.push_back($5); /* return type */
+                    $$->children.push_back($6); /* body */
+                }
+                ;
+
+params:         ID COLON type {
+                    /* first/only param - the mandatory one */
+                    $$ = new Node("Params", "", yylineno);
+                    Node* param = new Node("Param", $1, yylineno);
+                    param->children.push_back($3);
+                    $$->children.push_back(param);
+                }
+                | params COMMA ID COLON type {
+                    /* additional params - the optional repeating part */
+                    Node* param = new Node("Param", $3, yylineno);
+                    param->children.push_back($5);
+                    $1->children.push_back(param);
+                    $$ = $1;
+                }
+                ;
 
 var:            VOLATILE ID COLON type ASSIGNOP expression {
                 /* volatile variable with initialization*/
