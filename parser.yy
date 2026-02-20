@@ -29,15 +29,19 @@ IF ELSE PRINT READ RETURN BREAK CONTINUE
 AND OR LESSOP MOREOP LESSEQOP MOREEQOP COMPOP NOTEQOP DIVOP POWEROP NEGATIONOP ASSIGNOP
 TRUE FALSE
 NEWLINE 
-CLASS MAIN VOLATILE
+CLASS MAIN VOLATILE LENGTH
 
 
 %token END 0 "end of file"
 
 /* Operator precedence and associativity rules */
 /* Used to resolve ambiguities in parsing expressions See https://www.gnu.org/software/bison/manual/bison.html#Precedence-Decl */ 
+%left OR AND
+%left COMPOP NOTEQOP LESSOP MOREOP LESSEQOP MOREEQOP
 %left PLUSOP MINUSOP 
-%left MULTOP
+%left MULTOP DIVOP
+%right POWEROP
+
 
 /* Add these lines to handle the dangling else conflict */
 %nonassoc LOWER_THAN_ELSE
@@ -265,8 +269,66 @@ expression: expression PLUSOP expression {      /*
                             $$->children.push_back($3);
                             /* printf("r3 "); */
                           }
+            | expression DIVOP expression {
+                            $$ = new Node("DivExpression", "", yylineno);
+                            $$->children.push_back($1);
+                            $$->children.push_back($3);
+                          }
+            | expression POWEROP expression {
 
-
+                            $$ = new Node("PowerExpression", "", yylineno);
+                            $$->children.push_back($1);
+                            $$->children.push_back($3);
+                          }
+            | expression AND expression {
+                            $$ = new Node("AndExpression", "", yylineno);
+                            $$->children.push_back($1);
+                            $$->children.push_back($3);
+                          }
+            | expression OR expression {
+                            $$ = new Node("OrExpression", "", yylineno);
+                            $$->children.push_back($1);
+                            $$->children.push_back($3);
+                            }
+            | expression LESSOP expression {
+                            $$ = new Node("LessExpression", "", yylineno);
+                            $$->children.push_back($1);
+                            $$->children.push_back($3);
+                          }
+            | expression MOREOP expression {
+                            $$ = new Node("MoreExpression", "", yylineno);
+                            $$->children.push_back($1);
+                            $$->children.push_back($3);
+                            }
+            | expression LESSEQOP expression {
+                            $$ = new Node("LessEqExpression", "", yylineno);
+                            $$->children.push_back($1);
+                            $$->children.push_back($3);
+                            }
+            | expression MOREEQOP expression {
+                            $$ = new Node("MoreEqExpression", "", yylineno);
+                            $$->children.push_back($1);
+                            $$->children.push_back($3);
+                            }
+            | expression COMPOP expression {
+                            $$ = new Node("EqExpression", "", yylineno);
+                            $$->children.push_back($1);
+                            $$->children.push_back($3);
+                            }
+            | expression NOTEQOP expression {
+                            $$ = new Node("NotEqExpression", "", yylineno);
+                            $$->children.push_back($1);
+                            $$->children.push_back($3);
+                            }
+            | expression LB expression RB {
+                            $$ = new Node("ArrayAccessExpression", "", yylineno);
+                            $$->children.push_back($1); /* array */
+                            $$->children.push_back($3); /* index */
+                            }
+            | expression DOT LENGTH {
+                            $$ = new Node("LengthExpression", "", yylineno);
+                            $$->children.push_back($1); /* array */
+                            }
             | factor      {$$ = $1;  /*printf("r4 ");*/}
             ;
 

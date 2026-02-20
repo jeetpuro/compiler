@@ -55,6 +55,7 @@
 "main"                  {if(USE_LEX_ONLY) {printf("MAIN ");} else {return yy::parser::make_MAIN(yytext);}}
 "class"                 {if(USE_LEX_ONLY) {printf("CLASS ");} else {return yy::parser::make_CLASS(yytext);}}
 "volatile"              {if(USE_LEX_ONLY) {printf("VOLATILE ");} else {return yy::parser::make_VOLATILE(yytext);}}
+"length"                {if(USE_LEX_ONLY) {printf("LENGTH ");} else {return yy::parser::make_LENGTH(yytext);}}
 \n+                     {if(USE_LEX_ONLY) {printf("NEWLINE ");} else {return yy::parser::make_NEWLINE(yytext);}}
 
 
