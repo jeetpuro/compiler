@@ -31,7 +31,6 @@
 "!="                    {if(USE_LEX_ONLY) {printf("NOTEQOP ");} else {return yy::parser::make_NOTEQOP(yytext);}}
 "/"                     {if(USE_LEX_ONLY) {printf("DIVOP ");} else {return yy::parser::make_DIVOP(yytext);}}
 "^"                     {if(USE_LEX_ONLY) {printf("POWEROP ");} else {return yy::parser::make_POWEROP(yytext);}}
-"!"                     {if(USE_LEX_ONLY) {printf("NEGATIONOP ");} else {return yy::parser::make_NEGATIONOP(yytext);}}
 ":="                    {if(USE_LEX_ONLY) {printf("ASSIGNOP ");} else {return yy::parser::make_ASSIGNOP(yytext);}}
 
 

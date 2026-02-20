@@ -1,0 +1,1 @@
+för att söka efter problem almänt dude bison -Wcounterexamples parser.yy

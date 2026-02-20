@@ -26,7 +26,7 @@
 %token <std::string> PLUSOP MINUSOP MULTOP INT FLOAT STRING LP RP ID FOR INT_EXPR FLOAT_EXPR VOID BOOL_EXPR
 LB RB CLB CRB DOT COMMA COLON
 IF ELSE PRINT READ RETURN BREAK CONTINUE 
-AND OR LESSOP MOREOP LESSEQOP MOREEQOP COMPOP NOTEQOP DIVOP POWEROP NEGATIONOP ASSIGNOP
+AND OR LESSOP MOREOP LESSEQOP MOREEQOP COMPOP NOTEQOP DIVOP POWEROP ASSIGNOP
 TRUE FALSE
 NEWLINE 
 CLASS MAIN VOLATILE LENGTH
@@ -37,11 +37,11 @@ CLASS MAIN VOLATILE LENGTH
 /* Operator precedence and associativity rules */
 /* Used to resolve ambiguities in parsing expressions See https://www.gnu.org/software/bison/manual/bison.html#Precedence-Decl */ 
 %left OR AND
-%left COMPOP NOTEQOP LESSOP MOREOP LESSEQOP MOREEQOP
+%left LESSOP MOREOP NOTEQOP COMPOP LESSEQOP MOREEQOP
 %left PLUSOP MINUSOP 
 %left MULTOP DIVOP
 %right POWEROP
-
+%left LB RB DOT
 
 /* Add these lines to handle the dangling else conflict */
 %nonassoc LOWER_THAN_ELSE
@@ -52,7 +52,9 @@ CLASS MAIN VOLATILE LENGTH
 /* The type specifies the data type of the values associated with these non-terminals */
 %type <Node *> root expression factor stmt 
 stmts entry stmtBl expressions baseType type var vars
-method params methods class classes program stmtEnd optNewline
+method params methods class classes program stmtEnd optNewline foropt1 foropt2
+
+
 
 /* Grammar rules section */
 /* This section defines the production rules for the language being parsed */
@@ -321,16 +323,19 @@ expression: expression PLUSOP expression {      /*
                             $$->children.push_back($3);
                             }
             | expression LB expression RB {
-                            $$ = new Node("ArrayAccessExpression", "", yylineno);
-                            $$->children.push_back($1); /* array */
-                            $$->children.push_back($3); /* index */
-                            }
+                $$ = new Node("ArrayExperssion", "", yylineno);
+                $$->children.push_back($1); /* array name or array expression */
+                $$->children.push_back($3); /* index expression */
+            }
             | expression DOT LENGTH {
-                            $$ = new Node("LengthExpression", "", yylineno);
-                            $$->children.push_back($1); /* array */
-                            }
+                $$ = new Node("LengthFunction", "", yylineno);
+                $$->children.push_back($1);
+            }  
+
             | factor      {$$ = $1;  /*printf("r4 ");*/}
             ;
+
+
 
 factor: 
              INT                {  $$ = new Node("Int", $1, yylineno); /* printf("r5 ");  Here we create a leaf node Int. The value of the leaf node is $1 */}
@@ -388,6 +393,39 @@ stmt:       PRINT LP expression RP {
             
             | var {$$ = $1;}
 
+            | READ LP expression RP  {
+            $$ = new Node("readStatement", "", yylineno);
+            $$->children.push_back($3);
+            }
+            
+            | FOR LP foropt1 COMMA foropt2 COMMA expression ASSIGNOP expression RP stmt {
+                $$ = new Node("ForStatement", "", yylineno);
+                $$->children.push_back($3); /* initialization */
+                $$->children.push_back($5); /* condition */
+                $$->children.push_back($7); /* update */
+                $$->children.push_back($9); /* body */
+                $$->children.push_back($11); /* body */
+            }
+            ;
+
+foropt1:    var {
+                $$ = new Node("var1", "", yylineno);
+                $$->children.push_back($1);
+            }
+            | expression ASSIGNOP expression {
+                $$ = new Node("expr1", "", yylineno);
+                $$->children.push_back($1);
+                $$->children.push_back($3);
+            }
+            ;
+
+foropt2:    expression {
+                $$ = new Node("expr2", "", yylineno);
+                $$->children.push_back($1);
+            }
+            | /* empty */ {
+                $$ = nullptr;
+            }
             ;
 
 stmts:      stmt stmtEnd { 
