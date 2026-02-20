@@ -48,7 +48,7 @@ CLASS MAIN VOLATILE
 /* The type specifies the data type of the values associated with these non-terminals */
 %type <Node *> root expression factor stmt 
 stmts entry stmtBl expressions baseType type var vars
-method params class 
+method params methods class classes program stmtEnd optNewline
 
 /* Grammar rules section */
 /* This section defines the production rules for the language being parsed */
@@ -65,16 +65,65 @@ type
 baseType 
 */
 
-root:     entry       {root = $1;}
+root:     program      {root = $1;}
           ;
 
-program
+program: vars classes entry {
+                $$ = new Node("Program", "", yylineno);
+                $$->children.push_back($1); /* vars */
+                $$->children.push_back($2); /* classes */
+                $$->children.push_back($3); /* entry point */
+                }
+        | classes entry {
+                $$ = new Node("Program", "", yylineno);
+                $$->children.push_back($1); /* classes */
+                $$->children.push_back($2); /* entry point */
+                }
+        | vars entry {
+                $$ = new Node("Program", "", yylineno);
+                $$->children.push_back($1); /* vars */
+                $$->children.push_back($2); /* entry point */
+                }
+        | entry {
+                $$ = new Node("Program", "", yylineno);
+                $$->children.push_back($1); /* entry point */
+                }
+        
+        ;
 
-class:          CLASS ID CLB vars method CRB {
+
+
+
+
+
+class:          CLASS ID CLB optNewline vars methods CRB {
                 $$ = new Node("Class", "", yylineno);
                 $$->children.push_back($4);
                 $$->children.push_back($5);
                 }
+                | CLASS ID CLB optNewline methods CRB {
+                $$ = new Node("Class", "", yylineno);
+                $$->children.push_back($4);
+                }
+                | CLASS ID CLB optNewline vars CRB {
+                $$ = new Node("Class", "", yylineno);
+                $$->children.push_back($4);
+                }
+                | CLASS ID CLB optNewline CRB {
+                $$ = new Node("Class", "", yylineno);
+                }
+                
+                ;
+classes:         class stmtEnd{
+                $$ = new Node("Classes", "", yylineno);
+                $$->children.push_back($1);
+                }
+
+                | classes class stmtEnd{
+                    $1->children.push_back($2);
+                    $$ = $1;
+                }
+                ;
 
 
 vars:            var {
@@ -98,6 +147,16 @@ method:         ID LP params RP COLON type stmtBl {
                     $$ = new Node("Method", $1, yylineno);
                     $$->children.push_back($5); /* return type */
                     $$->children.push_back($6); /* body */
+                }
+                ;
+
+methods:        method {
+                    $$ = new Node("Methods", "", yylineno);
+                    $$->children.push_back($1);
+                }
+                | methods method {
+                    $1->children.push_back($2);
+                    $$ = $1;
                 }
                 ;
 
@@ -175,7 +234,7 @@ expressions:      expression{
                 $$ = new Node("expression", "", yylineno);
                 $$->children.push_back($1);
             }
-            | expressions expression NEWLINE{ 
+            | expressions expression { 
                 $1->children.push_back($2);
                 $$ = $1;
             }
@@ -269,22 +328,32 @@ stmt:       PRINT LP expression RP {
 
             ;
 
-stmts:      stmt NEWLINE{ 
+stmts:      stmt stmtEnd { 
                 $$ = new Node("Statements", "", yylineno);
                 $$->children.push_back($1);
             }
-            | stmts stmt NEWLINE{ 
+            | stmts stmt stmtEnd{ 
                 $1->children.push_back($2);
                 $$ = $1;
             }
 ;
 
-stmtBl:     CLB NEWLINE stmts CRB {  /*statments Boys Love*/
+stmtEnd: NEWLINE        { $$ = nullptr; }
+
+       | stmtEnd NEWLINE { $$ = nullptr; }
+       ;
+
+optNewline: stmtEnd { $$ = nullptr;}
+              | /* empty */ { $$ = nullptr; }
+              ;
+
+stmtBl:     CLB stmtEnd stmts CRB {  /*statments Boys Love*/
                  $$ = $3;
             }
             | CLB  stmts CRB {
               $$ = $2;
             }
+
 
 
 entry:      MAIN LP RP COLON INT_EXPR stmtBl {
@@ -295,13 +364,6 @@ entry:      MAIN LP RP COLON INT_EXPR stmtBl {
 
 
 
-/*                    
-          | READ LP expression RP NEWLINE {
-                          $$ = new Node("ReadStatement", "", yylineno);
-                          $$->children.push_back($3);
-                          }
 
-
-*/
 
 %%
