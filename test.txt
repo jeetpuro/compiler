@@ -1,10 +1,6 @@
 main(): int { 
+   
+    x<y
 
-    x : boolean := false
-    u : int := 2
-    k : float
-    k : int
-    volatile a : int
-    volatile b : int := 4
 
-    } //@
+} //@
