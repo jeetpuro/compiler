@@ -19,6 +19,7 @@
   
   Node* root;
   extern int yylineno;
+  int syntax_errors = 0;  // ADD THIS
 }
 
 /* Token definitions for the grammar */
@@ -53,9 +54,10 @@ CLASS MAIN VOLATILE LENGTH
 /* The type specifies the data type of the values associated with these non-terminals */
 %type <Node *> root expression factor stmt 
 stmts entry stmtBl baseType type var vars
-method params methods class classes program stmtEnd optNewline foropt1 foropt2
+method params /*methods*/ class classes program stmtEnd foropt1 foropt2
 funcopt1
 listopt1
+
 
 /* Grammar rules section */
 /* This section defines the production rules for the language being parsed */
@@ -103,11 +105,7 @@ program: vars classes entry {
 class:          CLASS ID stmtBl {
                 $$ = new Node("Class", $2, yylineno);
                 $$->children.push_back($3);
-                }
-                | CLASS ID CLB error {
-                    std::cerr << "Syntax error at line " << yylineno << ": class '" << $2 << "' is missing closing bracket '}' " << std::endl;
-                    $$ = new Node("Class", $2, yylineno);
-                }               
+                }        
                 ;
 
 classes:         class stmtEnd{
@@ -144,17 +142,24 @@ method:         ID LP params RP COLON type stmtBl {
                     $$->children.push_back($5); /* return type */
                     $$->children.push_back($6); /* body */
                 }
+                | ID LP error RP COLON type stmtBl {
+                    /* bad parameter list - recover */
+                    syntax_errors++;
+                    $$ = new Node("Method", $1, yylineno);
+                    $$->children.push_back($6); /* return type */
+                    $$->children.push_back($7); /* body */
+                }
                 ;
 
-methods:        method {
-                    $$ = new Node("Methods", "", yylineno);
-                    $$->children.push_back($1);
-                }
-                | methods method {
-                    $1->children.push_back($2);
-                    $$ = $1;
-                }
-                ;
+/*methods:        method { */
+/*                    $$ = new Node("Methods", "", yylineno);*/
+/*                    $$->children.push_back($1);*/
+/*                }*/
+/*                | methods method {*/
+/*                    $1->children.push_back($2);*/
+/*                    $$ = $1;*/
+/*                }*/
+/*                ;*/
 
 params:         ID COLON type {
                     /* first/only param - the mandatory one */
@@ -503,7 +508,14 @@ stmts:      stmt stmtEnd {
                 $1->children.push_back($2);
                 $$ = $1;
             }
-
+            | stmts error stmtEnd {
+                syntax_errors++;
+                $$ = $1;  /* skip bad statement, continue parsing */
+            }
+            | error stmtEnd {
+                syntax_errors++;
+                $$ = new Node("Statements", "", yylineno);  /* skip bad statement, continue parsing */
+            }
 
             ;
 
@@ -512,16 +524,16 @@ stmtEnd: NEWLINE        { $$ = nullptr; }
        | stmtEnd NEWLINE { $$ = nullptr; }
        ;
 
-optNewline: stmtEnd { $$ = nullptr;}
-              | /* empty */ { $$ = nullptr; }
-              ;
-
-stmtBl:     CLB stmtEnd stmts CRB {  /*statments Boys Love*/
+stmtBl:     CLB stmtEnd stmts CRB {  /*Statments Boys Love*/
                  $$ = $3;
             }
             | CLB  stmts CRB {
               $$ = $2;
-            }         
+            }   
+            | CLB error CRB {
+                 syntax_errors++;
+                 $$ = new Node("Statements", "", yylineno);
+            }
             ;
 
 

@@ -5,6 +5,7 @@ extern Node *root;
 extern FILE *yyin;
 extern int yylineno;
 extern int lexical_errors;
+extern int syntax_errors;
 extern yy::parser::symbol_type yylex();
 
 enum errCodes
@@ -24,84 +25,66 @@ void yy::parser::error(std::string const &err)
 {
 	if (!lexical_errors)
 	{
+        // std::cerr << "DEBUG: " << err << std::endl;
         std::cerr << "Syntax errors found! See the logs below:" << std::endl;
 
-        // ClassMissingClosingBracket.cpm / MethodMissingClosingBracket.cpm
-        if (err.find("expecting CRB") != std::string::npos)
+        // Map of {pattern to find, message to print}
+        // ORDER MATTERS - first match wins
+        static const std::vector<std::pair<std::vector<std::string>, std::string>> errorPatterns = {
+            // {patterns that must ALL be present},  message
+            {{"unexpected RP", "expecting LB"},       "Invalid print statement: type used as expression"},
+            {{"unexpected INT_EXPR", "expecting LB"}, "Invalid type declaration: identifier expected"},
+            {{"unexpected INT_EXPR"},                 "Invalid type declaration: identifier expected"},
+            {{"expecting CRB"},                        "Missing closing bracket '}'"},
+            {{"expecting RP"},                         "Missing closing parenthesis ')'"},
+            {{"unexpected RP"},                        "Trailing comma in argument/parameter list"},
+            {{"expecting RB"},                         "Missing closing bracket ']'"},
+            {{"expecting LP"},                         "Missing opening parenthesis '('"},
+            {{"expecting CLB"},                        "Missing opening bracket '{'"},
+            {{"expecting COLON"},                      "Missing colon ':' in declaration"},
+            {{"expecting ID"},                         "Expected an identifier"},
+            {{"expecting CLASS or MAIN"},              "Missing 'main' method"},
+            {{"unexpected ASSIGNOP"},                  "Stray assignment operator ':='"},
+            {{"unexpected INT_TYPE"},                  "Invalid print statement: type used as expression"},
+            {{"unexpected COMMA"},                     "Invalid method call - unexpected comma"},
+            {{"unexpected NEWLINE"},                   "Missing statement or expression"},
+            {{"unexpected IF"},                        "Illegal use of 'if' inside an if-condition"},
+            {{"unexpected CLASS"},                     "Invalid class signature"},
+            {{"unexpected $undefined"},                "Invalid syntax - unexpected token"},
+            {{"unexpected VOLATILE"},                  "Illegal access modifier in method declaration"},        
+            {{"unexpected CRB", "expecting"},          "Missing statement after if"},    
+        };
+
+        bool matched = false;
+        for (const auto& [patterns, message] : errorPatterns)
         {
-            std::cerr << "\t@error at line " << yylineno << ". Missing closing bracket '}'" << std::endl;
+            // Check if ALL patterns in the vector match
+            bool allMatch = true;
+            for (const auto& pattern : patterns)
+            {
+                if (err.find(pattern) == std::string::npos)
+                {
+                    allMatch = false;
+                    break;
+                }
+            }
+
+            if (allMatch)
+            {
+                std::cerr << "\t@error at line " << yylineno << ". " << message << std::endl;
+                matched = true;
+                break;
+            }
         }
-        // UnmatchedParentheses.cpm / MissingMethodBraces.cpm
-        else if (err.find("expecting RP") != std::string::npos)
-        {
-            std::cerr << "\t@error at line " << yylineno << ". Missing closing parenthesis ')'" << std::endl;
-        }
-        // Missing closing square bracket
-        else if (err.find("expecting RB") != std::string::npos)
-        {
-            std::cerr << "\t@error at line " << yylineno << ". Missing closing bracket ']'" << std::endl;
-        }
-        // MissingMethodBraces.cpm - missing opening parenthesis
-        else if (err.find("expecting LP") != std::string::npos)
-        {
-            std::cerr << "\t@error at line " << yylineno << ". Missing opening parenthesis '('" << std::endl;
-        }
-        // Missing opening bracket
-        else if (err.find("expecting CLB") != std::string::npos)
-        {
-            std::cerr << "\t@error at line " << yylineno << ". Missing opening bracket '{'" << std::endl;
-        }
-        // InvalidMethodDeclaration.cpm / InvalidTypeDeclaration.cpm - expecting colon
-        else if (err.find("expecting COLON") != std::string::npos)
-        {
-            std::cerr << "\t@error at line " << yylineno << ". Missing colon ':' in declaration" << std::endl;
-        }
-        // IllegalClassName.cpm / InvalidClassSignature.cpm - expecting ID after class
-        else if (err.find("expecting ID") != std::string::npos)
-        {
-            std::cerr << "\t@error at line " << yylineno << ". Expected an identifier (name)" << std::endl;
-        }
-        // NoMainMethod.cpm - expecting MAIN
-        else if (err.find("expecting MAIN") != std::string::npos)
-        {
-            std::cerr << "\t@error at line " << yylineno << ". Missing 'main' method" << std::endl;
-        }
-        // ExtraToken.cpm - unexpected ASSIGNOP
-        else if (err.find("unexpected ASSIGNOP") != std::string::npos)
-        {
-            std::cerr << "\t@error at line " << yylineno << ". Stray assignment operator ':='" << std::endl;
-        }
-        // InvalidPrintStatement.cpm - unexpected token in print
-        else if (err.find("unexpected PRINT") != std::string::npos)
-        {
-            std::cerr << "\t@error at line " << yylineno << ". Invalid print statement" << std::endl;
-        }
-        // InvalidMethodCall.cpm / InvalidMethodCall1.cpm / InvalidMethodCall2.cpm
-        else if (err.find("unexpected COMMA") != std::string::npos)
-        {
-            std::cerr << "\t@error at line " << yylineno << ". Invalid method call - unexpected comma" << std::endl;
-        }
-        // MissingStatementAfterIf.cpm
-        else if (err.find("unexpected NEWLINE") != std::string::npos)
-        {
-            std::cerr << "\t@error at line " << yylineno << ". Missing statement or expression" << std::endl;
-        }
-        // IllegalIfInIfCondition.cpm
-        else if (err.find("unexpected IF") != std::string::npos)
-        {
-            std::cerr << "\t@error at line " << yylineno << ". Illegal use of 'if' inside an if-condition" << std::endl;
-        }
-        // InvalidClassSignature.cpm - unexpected CLASS
-        else if (err.find("unexpected CLASS") != std::string::npos)
-        {
-            std::cerr << "\t@error at line " << yylineno << ". Invalid class signature" << std::endl;
-        }
-        // Catch-all for any other syntax error
-        else
+
+        // Catch-all
+        if (!matched)
         {
             std::cerr << "\t@error at line " << yylineno << ". " << err << std::endl;
         }
-	}
+
+        errCode = errCodes::SYNTAX_ERROR;
+    }
 }
 
 int main(int argc, char **argv)
@@ -127,7 +110,7 @@ int main(int argc, char **argv)
 		if (lexical_errors)
 			errCode = errCodes::LEXICAL_ERROR;
 
-		if (parseSuccess && !lexical_errors)
+		if (parseSuccess && !lexical_errors && syntax_errors == 0)
 		{
 			printf("\nThe compiler successfuly generated a syntax tree for the given input! \n");
 

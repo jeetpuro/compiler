@@ -11,3 +11,17 @@ tree:
 clean:
 		rm -f parser.tab.* lex.yy.c* compiler stack.hh position.hh location.hh tree.dot tree.pdf
 		rm -R compiler.dSYM
+
+test_syntax: compiler
+	@echo "Running all syntax error tests..."
+	@echo "=================================="
+	@for file in syntax_errors/*.cpm; do \
+		echo ""; \
+		echo ">> Testing: $$file"; \
+		echo "----------------------------------"; \
+		./compiler $$file; \
+		echo "----------------------------------"; \
+	done
+	@echo ""
+	@echo "=================================="
+	@echo "All syntax error tests completed!"

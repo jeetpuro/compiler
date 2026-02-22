@@ -4,7 +4,7 @@ class MyClass {
 
     test := Init //@error - syntax (missing argument list in method call)
 
-    return false
+    return false    // this is a semantic ERRORO not syntax, this is sooo valid. cuz init can be a variable
   }
 }
 
