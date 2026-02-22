@@ -60,7 +60,7 @@
 
 
 
-[a-zA-Z"%0-9$@_]*        {if(USE_LEX_ONLY) {printf("ID ");} else {return yy::parser::make_ID(yytext);}}
+[a-zA-Z"%$@_]*        {if(USE_LEX_ONLY) {printf("ID ");} else {return yy::parser::make_ID(yytext);}}
 
 
 [ \t\r]+                {}

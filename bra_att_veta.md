@@ -39,3 +39,18 @@ Note: For volatile vars, children shift by one (child 0 = Volatile, child 1 = ty
 
                 main {}
 
+-------------------------------------------
+
+
+
+        if (j < (i + 1)) {
+          cont := false
+        }
+        this or
+                if (j < (i + 1)) cont := false
+
+
+-----------------------------------------------
+[a-zA-Z"%$@_]*        {if(USE_LEX_ONLY) {printf("ID "
+
+är det såhär det ska se ut suejb?

@@ -100,24 +100,16 @@ program: vars classes entry {
 
 
 
-class:          CLASS ID CLB optNewline vars methods CRB {
-                $$ = new Node("Class", "", yylineno);
-                $$->children.push_back($4);
-                $$->children.push_back($5);
+class:          CLASS ID stmtBl {
+                $$ = new Node("Class", $2, yylineno);
+                $$->children.push_back($3);
                 }
-                | CLASS ID CLB optNewline methods CRB {
-                $$ = new Node("Class", "", yylineno);
-                $$->children.push_back($4);
-                }
-                | CLASS ID CLB optNewline vars CRB {
-                $$ = new Node("Class", "", yylineno);
-                $$->children.push_back($4);
-                }
-                | CLASS ID CLB optNewline CRB {
-                $$ = new Node("Class", "", yylineno);
-                }
-                
+                | CLASS ID CLB error {
+                    std::cerr << "Syntax error at line " << yylineno << ": class '" << $2 << "' is missing closing bracket '}' " << std::endl;
+                    $$ = new Node("Class", $2, yylineno);
+                }               
                 ;
+
 classes:         class stmtEnd{
                 $$ = new Node("Classes", "", yylineno);
                 $$->children.push_back($1);
@@ -434,6 +426,12 @@ stmt:       PRINT LP expression RP {
                               $$->children.push_back($5);
                               }
 
+            | IF LP expression RP stmt %prec LOWER_THAN_ELSE {
+                              $$ = new Node("IfStatement", "", yylineno);
+                              $$->children.push_back($3);
+                              $$->children.push_back($5);
+                              }
+
             | IF LP expression RP stmtBl ELSE stmtBl {
                               $$ = new Node("IfElseStatement", "", yylineno);
                               $$->children.push_back($3);
@@ -445,6 +443,8 @@ stmt:       PRINT LP expression RP {
             | expression {$$ = $1;}
             
             | var {$$ = $1;}
+
+            | method {$$ = $1;}
 
             | READ LP expression RP  {
             $$ = new Node("readStatement", "", yylineno);
@@ -460,8 +460,8 @@ stmt:       PRINT LP expression RP {
             
             | FOR LP foropt1 COMMA foropt2 COMMA expression ASSIGNOP expression RP stmtBl { 
                 $$ = new Node("ForStatement", "", yylineno);
-                $$->children.push_back($3); /* initialization */
-                $$->children.push_back($5); /* condition */
+                if ($3) $$->children.push_back($3); /* initialization */
+                if ($5) $$->children.push_back($5); /* condition */
                 Node* update = new Node("AssignmentStatement", "", yylineno);
                 update->children.push_back($7);  /* update lhs */
                 update->children.push_back($9);  /* update rhs */
@@ -469,6 +469,8 @@ stmt:       PRINT LP expression RP {
                 $$->children.push_back($11); /* body */
             }
             ;
+
+
 
 foropt1:    var {
                 $$ = new Node("var1", "", yylineno);
@@ -479,7 +481,7 @@ foropt1:    var {
                 $$->children.push_back($1);
                 $$->children.push_back($3);
             }
-            | /*empty */{ $$ = nullptr; }
+            | /*empty */{$$ = nullptr;}
             ;
 
 foropt2:    expression {
@@ -495,10 +497,14 @@ stmts:      stmt stmtEnd {
                 $$ = new Node("Statements", "", yylineno);
                 $$->children.push_back($1);
             }
+
+            
             | stmts stmt stmtEnd{ 
                 $1->children.push_back($2);
                 $$ = $1;
             }
+
+
             ;
 
 stmtEnd: NEWLINE        { $$ = nullptr; }
@@ -515,7 +521,7 @@ stmtBl:     CLB stmtEnd stmts CRB {  /*statments Boys Love*/
             }
             | CLB  stmts CRB {
               $$ = $2;
-            }
+            }         
             ;
 
 
@@ -528,3 +534,5 @@ entry:      MAIN LP RP COLON INT_EXPR stmtBl {
 
 
 %%
+
+/* Error handling defined in main.cc*/
