@@ -1,7 +1,9 @@
 /* Skeleton and definitions for generating a LALR(1) parser in C++ */
 %skeleton "lalr1.cc" 
 %defines
-%define parse.error verbose
+// define parse.error verbose
+%define parse.error detailed
+%define parse.lac full
 %define api.value.type variant
 %define api.token.constructor
 
@@ -19,7 +21,7 @@
   
   Node* root;
   extern int yylineno;
-  int syntax_errors = 0;  // ADD THIS
+  int syntax_errors = 0;
 }
 
 /* Token definitions for the grammar */
@@ -37,13 +39,16 @@ CLASS MAIN VOLATILE LENGTH
 
 /* Operator precedence and associativity rules */
 /* Used to resolve ambiguities in parsing expressions See https://www.gnu.org/software/bison/manual/bison.html#Precedence-Decl */ 
-%left OR AND
-%left LESSOP MOREOP NOTEQOP COMPOP LESSEQOP MOREEQOP
+
+%left OR 
+%left AND
+%right POWEROP
+%left NOTEQOP COMPOP
+%left LESSOP MOREOP LESSEQOP MOREEQOP
 %left PLUSOP MINUSOP 
 %left MULTOP DIVOP
-%left NOT
-%right POWEROP
-%left LB RB DOT
+%right NOT
+%left LB RB DOT LP RP
 
 /* Add these lines to handle the dangling else conflict */
 %nonassoc LOWER_THAN_ELSE
@@ -64,15 +69,6 @@ listopt1
 %%
 
 
-/*
-program 
-class 
-entry
-method 
-var   
-type  
-baseType 
-*/
 
 root:     program      {root = $1;}
           ;
@@ -81,25 +77,23 @@ program: vars classes entry {
                 $$ = new Node("Program", "", yylineno);
                 $$->children.push_back($1); /* vars */
                 $$->children.push_back($2); /* classes */
-                $$->children.push_back($3); /* entry point */
+                $$->children.push_back($3);
                 }
         | classes entry {
                 $$ = new Node("Program", "", yylineno);
                 $$->children.push_back($1); /* classes */
-                $$->children.push_back($2); /* entry point */
+                $$->children.push_back($2);
                 }
         | vars entry {
                 $$ = new Node("Program", "", yylineno);
                 $$->children.push_back($1); /* vars */
-                $$->children.push_back($2); /* entry point */
+                $$->children.push_back($2);
                 }
         | entry {
                 $$ = new Node("Program", "", yylineno);
-                $$->children.push_back($1); /* entry point */
+                $$->children.push_back($1);
                 }
-        
-        ;
-
+                 ;
 
 
 class:          CLASS ID stmtBl {
@@ -181,7 +175,6 @@ var:            VOLATILE ID COLON type ASSIGNOP expression {
                 /* volatile variable with initialization*/
                     $$ = new Node("VarDecl", $2, yylineno);
                     $$->children.push_back(new Node("Keyword", $1, yylineno));
-                    /*$$->value = "volatile";*/
                     $$->children.push_back($4); /* child 0: type */
                     $$->children.push_back($6); /* child 1: initialization expression */
                 }
@@ -189,7 +182,6 @@ var:            VOLATILE ID COLON type ASSIGNOP expression {
                     /* volatile variable without initialization */
                     $$ = new Node("VarDecl", $2, yylineno);
                     $$->children.push_back(new Node("Keyword", $1, yylineno));
-                    /*$$->value = "volatile";*/
                     $$->children.push_back($4); /* child 0: type */
                 }
                 | ID COLON type ASSIGNOP expression {
@@ -233,16 +225,6 @@ baseType:         INT_EXPR {
                 ;
 
 
-
-/*expressions:    expression{                                                                      */
-/*                $$ = new Node("expression", "", yylineno);                                       */
-/*                $$->children.push_back($1);                                                      */
-/*            }                                                                                    */
-/*            | expressions expression {  här tillåter vi "expressions expression..." utan någon   */
-/*                $1->children.push_back($2);                                                      */
-/*                $$ = $1;                                                                         */
-/*            }                                                                                    */
-/*              ;                                                                                  */
 
 expression: expression PLUSOP expression {      /*
                                                   Create a subtree that corresponds to the AddExpression
@@ -356,6 +338,7 @@ expression: expression PLUSOP expression {      /*
             | factor      {$$ = $1;  /*printf("r4 ");*/}
             ;
 
+
 listopt1:   COMMA expression { /* base case*/
                 $$ = new Node("ListExtra", "", yylineno);
                 $$->children.push_back($2);
@@ -375,7 +358,6 @@ funcopt1:   expression {
                 $$ = $1;
             }
             ;
-
 
 factor: 
              INT                {  $$ = new Node("Int", $1, yylineno); /* printf("r5 ");  Here we create a leaf node Int. The value of the leaf node is $1 */}
@@ -463,9 +445,10 @@ stmt:       PRINT LP expression RP {
 
             }
             
-            | FOR LP foropt1 COMMA foropt2 COMMA expression ASSIGNOP expression RP stmtBl { 
+            | FOR LP foropt1 COMMA foropt2 COMMA expression ASSIGNOP expression RP stmtBl {  /*for lab2, it always need to have a init and condition*/
                 $$ = new Node("ForStatement", "", yylineno);
-                if ($3) $$->children.push_back($3); /* initialization */
+                if ($3) $$->children.push_back($3);   /* initialization */
+                    
                 if ($5) $$->children.push_back($5); /* condition */
                 Node* update = new Node("AssignmentStatement", "", yylineno);
                 update->children.push_back($7);  /* update lhs */
@@ -475,26 +458,26 @@ stmt:       PRINT LP expression RP {
             }
             ;
 
-
-
 foropt1:    var {
                 $$ = new Node("var1", "", yylineno);
                 $$->children.push_back($1);
             }
             | expression ASSIGNOP expression {
-                $$ = new Node("expr1", "", yylineno);
+                $$ = new Node("Initialization", "", yylineno);
                 $$->children.push_back($1);
                 $$->children.push_back($3);
             }
-            | /*empty */{$$ = nullptr;}
+            | /*empty */{
+                $$ = new Node("EmptyInit", "", yylineno);
+            }
             ;
 
 foropt2:    expression {
-                $$ = new Node("expr2", "", yylineno);
+                $$ = new Node("Condition", "", yylineno);
                 $$->children.push_back($1);
             }
             | /* empty */ {
-                $$ = nullptr;
+                $$ = new Node("EmptyCond", "", yylineno);;
             }
             ;
 
