@@ -1,4 +1,5 @@
-för att söka efter problem almänt dude bison -Wcounterexamples parser.yy
+för att söka efter problem almänt dude 
+bison -Wcounterexamples parser.yy
 
 * vi behöver göra test cases för varje non terminal. dvs om class{} och det fattas ett "}" så ska det stå: "syntax error missing a CRB"
 

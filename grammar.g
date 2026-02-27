@@ -1,6 +1,6 @@
 
-program  ::= (var stmtEnd)* (class stmtEnd)* entry  EOF ;
-class    ::= "class" ID "{" (var stmtEnd)* (method stmtEnd)* "}" ;
+program  ::= (var stmtEnd)* (class stmtEnd)* entry  EOF ; (DONE)
+class    ::= "class" ID "{" (var stmtEnd)* (method stmtEnd)* "}" ; (DONE)
 entry    ::= "main" "("")" ":" "int" stmtBl ;
 method   ::= ID "(" (ID ":" type ("," ID ":" type)* )? ")" ":" type stmtBl ;
 var      ::= ("volatile")? ID ":" type (":=" expr)? ;

@@ -58,8 +58,8 @@ CLASS MAIN VOLATILE LENGTH
 /* Specify types for non-terminals in the grammar */
 /* The type specifies the data type of the values associated with these non-terminals */
 %type <Node *> root expression factor stmt 
-stmts entry stmtBl baseType type var vars
-method params /*methods*/ class classes program stmtEnd foropt1 foropt2
+stmts entry stmtBl baseType type var vars methods
+method params /*methods*/ class classes program stmtEnd foropt1 foropt2 optnewline
 funcopt1
 listopt1
 
@@ -93,13 +93,28 @@ program: vars classes entry {
                 $$ = new Node("Program", "", yylineno);
                 $$->children.push_back($1);
                 }
-                 ;
+                ;
 
 
-class:          CLASS ID stmtBl {
+class:          CLASS ID CLB optnewline vars methods CRB {
                 $$ = new Node("Class", $2, yylineno);
-                $$->children.push_back($3);
-                }        
+                $$->children.push_back($5);
+                $$->children.push_back($6);
+                }
+
+                | CLASS ID CLB optnewline vars CRB {
+                $$ = new Node("Class", $2, yylineno);
+                $$->children.push_back($5);
+                }
+
+                | CLASS ID CLB optnewline methods CRB {
+                $$ = new Node("Class", $2, yylineno);
+                $$->children.push_back($5);
+                }
+
+                | CLASS ID CLB optnewline CRB {
+                $$ = new Node("Class", $2, yylineno);
+                }    
                 ;
 
 classes:         class stmtEnd{
@@ -114,12 +129,12 @@ classes:         class stmtEnd{
                 ;
 
 
-vars:            var {
+vars:            var stmtEnd {
                     $$ = new Node("VarDecl", "", yylineno);
                     $$->children.push_back($1);
                 }
 
-                | vars var {
+                | vars var stmtEnd {
                     $$ = new Node("VarDecl", "", yylineno);
                     $$->children.push_back($2);
                 }
@@ -145,15 +160,15 @@ method:         ID LP params RP COLON type stmtBl {
                 }
                 ;
 
-/*methods:        method { */
-/*                    $$ = new Node("Methods", "", yylineno);*/
-/*                    $$->children.push_back($1);*/
-/*                }*/
-/*                | methods method {*/
-/*                    $1->children.push_back($2);*/
-/*                    $$ = $1;*/
-/*                }*/
-/*                ;*/
+methods:        method optnewline { 
+                    $$ = new Node("Methods", "", yylineno);
+                    $$->children.push_back($1);
+                }
+                | methods method optnewline {
+                    $1->children.push_back($2);
+                    $$ = $1;
+                }
+                ;
 
 params:         ID COLON type {
                     /* first/only param - the mandatory one */
@@ -431,7 +446,6 @@ stmt:       PRINT LP expression RP {
             
             | var {$$ = $1;}
 
-            | method {$$ = $1;}
 
             | READ LP expression RP  {
             $$ = new Node("readStatement", "", yylineno);
@@ -506,6 +520,10 @@ stmtEnd: NEWLINE        { $$ = nullptr; }
 
        | stmtEnd NEWLINE { $$ = nullptr; }
        ;
+       
+optnewline: NEWLINE { $$ = nullptr; }
+          | /* empty */ { $$ = nullptr; }
+          ;
 
 stmtBl:     CLB stmtEnd stmts CRB {  /*Statments Boys Love*/
                  $$ = $3;
@@ -516,6 +534,9 @@ stmtBl:     CLB stmtEnd stmts CRB {  /*Statments Boys Love*/
             | CLB error CRB {
                  syntax_errors++;
                  $$ = new Node("Statements", "", yylineno);
+            }
+            | CLB CRB {
+                $$ = new Node("Statements", "", yylineno);
             }
             ;
 

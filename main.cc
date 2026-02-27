@@ -9,7 +9,7 @@ extern int lexical_errors;
 extern int syntax_errors;
 extern yy::parser::symbol_type yylex();
 
-bool debug_mode = false;
+bool debug_mode = true;
 
 enum errCodes
 {

@@ -1,5 +1,5 @@
 class AST {
-    TestIfElse : int() {
+    TestIfElse() : int {
       volatile A : boolean := false
       volatile B : boolean := true
   
