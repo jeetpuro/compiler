@@ -96,6 +96,14 @@ public:
                 if (child) buildSymbolTable(child);
             st.exitScope();
 
+        // ──────── NEW CHECK: Undeclared identifiers ────────
+        } else if (type == "ID") {
+            // This node is an identifier being USED (not declared).
+            // Check: has it been declared in any visible scope?
+            if (!st.lookup(value)) {
+                reportError(node, "Undeclared identifier: '" + value + "'");
+            }
+
         } else {
             // Default pass-through: recurse all children
             for (auto* child : node->children)

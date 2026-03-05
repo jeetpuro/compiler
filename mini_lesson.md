@@ -169,8 +169,8 @@ Open `SemanticAnalyzer.h`, find the `buildSymbolTable` method. Look for this sec
 ```cpp
         } else if (type == "MainStatement") {
             st.enterScope("main");
-            for (auto* child : children)
-                if (child) child->buildSymbolTable(st, errors);
+            for (auto* child : node->children)
+                if (child) buildSymbolTable(child);
             st.exitScope();
 
         } else {
@@ -566,7 +566,7 @@ Examples:
 - Missing return → node type is `"Method"`
 - Statement after return → node type is `"Statements"`
 
-### Step 2: Add an `else if` branch in Node.h
+### Step 2: Add an `else if` branch in SemanticAnalyzer.h
 
 Open `SemanticAnalyzer.h` → find `buildSymbolTable()` → add your branch **before the
 `else` default**:
