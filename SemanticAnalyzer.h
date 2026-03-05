@@ -102,6 +102,7 @@ public:
             // Check: has it been declared in any visible scope?
             if (!st.lookup(value)) {
                 reportError(node, "Undeclared identifier: '" + value + "'");
+                
             }
 
         } else {
