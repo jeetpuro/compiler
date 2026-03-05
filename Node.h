@@ -15,6 +15,7 @@ class Node {
 public:
 	int id, lineno;
 	string type, value;
+	string errorMsg = "";   // set by buildSymbolTable when a semantic error is found
 	list<Node*> children;
 	Node(string t, string v, int l) : type(t), value(v), lineno(l){}
 	Node()
@@ -54,6 +55,55 @@ public:
 		  *outStream << "n" << id << " -> n" << (*i)->id << endl;
 	  }
   }
+
+	// ── Visual Semantic Debugger ───────────────────────────────────────────
+
+	void generate_tree_semantic() {
+		std::ofstream outStream;
+		const char* filename = "tree_semantic.dot";
+		outStream.open(filename);
+		int count = 0;
+		outStream << "digraph {" << std::endl;
+		outStream << "  node [style=filled, fillcolor=white, shape=box];" << std::endl;
+		generate_tree_semantic_content(count, &outStream);
+		outStream << "}" << std::endl;
+		outStream.close();
+		printf("\nBuilt semantic tree at %s. Run 'make tree_semantic' to generate the PDF.\n", filename);
+	}
+
+	void generate_tree_semantic_content(int& count, ofstream* out) {
+		id = count++;
+
+		// Escape a string for use inside a DOT double-quoted label
+		auto esc = [](const string& s) {
+			string r;
+			for (char c : s) {
+				if      (c == '"')  r += "\\\"";
+				else if (c == '\\') r += "\\\\";
+				else if (c == '\n') r += "\\n";
+				else r += c;
+			}
+			return r;
+		};
+
+		string lbl = esc(type + ":" + value);
+
+		if (!errorMsg.empty()) {
+			// Red double-octagon — semantic error node
+			*out << "n" << id
+			     << " [label=\"" << lbl << "\\n" << esc(errorMsg) << "\""
+			     << ", style=filled, fillcolor=red, fontcolor=white"
+			     << ", shape=doubleoctagon];" << endl;
+		} else {
+			*out << "n" << id
+			     << " [label=\"" << lbl << "\"];" << endl;
+		}
+
+		for (auto* child : children) {
+			child->generate_tree_semantic_content(count, out);
+			*out << "n" << id << " -> n" << child->id << endl;
+		}
+	}
 
 };
 

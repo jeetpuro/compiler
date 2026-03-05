@@ -1,5 +1,6 @@
 #include <iostream>
 #include "parser.tab.hh"
+#include "SemanticAnalyzer.h"
 #include <cstring>
 
 extern Node *root;
@@ -156,6 +157,19 @@ int main(int argc, char **argv)
             catch (...)
             {
                 errCode = errCodes::AST_ERROR;
+            }
+
+            // ── Semantic Analysis ──
+            SemanticAnalyzer analyzer;
+            analyzer.analyze(root);
+            analyzer.st.printTable();
+            root->generate_tree_semantic();
+
+            if (analyzer.errors > 0) {
+                printf("\nSemantic errors found: %d\n", analyzer.errors);
+                errCode = errCodes::SEMANTIC_ERROR;
+            } else {
+                printf("\nSemantic analysis passed with no errors.\n");
             }
         }
     }

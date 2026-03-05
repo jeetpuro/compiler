@@ -8,8 +8,10 @@ lex.yy.c: lexer.flex parser.tab.cc
 		flex lexer.flex
 tree: 
 		dot -Tpdf tree.dot -otree.pdf
+tree_semantic:
+		dot -Tpdf tree_semantic.dot -otree_semantic.pdf
 clean:
-		rm -f parser.tab.* lex.yy.c* compiler stack.hh position.hh location.hh tree.dot tree.pdf
+		rm -f parser.tab.* lex.yy.c* compiler stack.hh position.hh location.hh tree.dot tree.pdf tree_semantic.dot tree_semantic.pdf
 		rm -R compiler.dSYM
 
 test_syntax: compiler
@@ -25,3 +27,17 @@ test_syntax: compiler
 	@echo ""
 	@echo "=================================="
 	@echo "All syntax error tests completed!"
+
+test_semantic: compiler
+	@echo "Running all semantic error tests..."
+	@echo "=================================="
+	@for file in semantic_errors/*.cpm; do \
+		echo ""; \
+		echo ">> Testing: $$file"; \
+		echo "----------------------------------"; \
+		./compiler $$file; \
+		echo "----------------------------------"; \
+	done
+	@echo ""
+	@echo "=================================="
+	@echo "All semantic error tests completed!"
