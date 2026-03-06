@@ -5,6 +5,7 @@
 #include <map>
 #include <vector>
 #include <iostream>
+#include <fstream>
 
 using namespace std;
 
@@ -78,6 +79,63 @@ public:
         for (auto* child : children)
             child->printScope(depth + 1);
     }
+
+void generate_dot_content(int& count, ofstream& out) const {
+    int myId = count++;
+
+    // Build a human-readable title from the scope label
+    string title;
+    if (label == "global")
+        title = "Global";
+    else if (label.size() > 6 && label.substr(0, 6) == "class:")
+        title = "Class (" + label.substr(6) + ")";
+    else if (label.size() > 7 && label.substr(0, 7) == "method:")
+        title = "Method (" + label.substr(7) + ")";
+    else if (label == "main")
+        title = "Main";
+    else
+        title = "Inner Scope(" + label + ")";
+
+    // Abbreviate kind to match the style in the reference image
+    auto kindShort = [](const string& k) -> string {
+        if (k == "variable" || k == "parameter") return "var";
+        if (k == "method")  return "method";
+        return k;
+    };
+
+    // Outer wrapper: title in red above the data grid
+    out << "  s" << myId
+        << " [shape=none, margin=0, label=<" << endl;
+    out << "    <TABLE BORDER=\"0\" CELLBORDER=\"0\" CELLSPACING=\"6\" CELLPADDING=\"0\">" << endl;
+    out << "      <TR><TD ALIGN=\"CENTER\"><FONT COLOR=\"red\"><B>"
+        << title << "</B></FONT></TD></TR>" << endl;
+    out << "      <TR><TD>" << endl;
+    // Inner data grid
+    out << "        <TABLE BORDER=\"1\" CELLBORDER=\"1\" CELLSPACING=\"0\" CELLPADDING=\"6\">" << endl;
+    if (records.empty()) {
+        out << "          <TR><TD COLSPAN=\"3\"><I>(empty)</I></TD></TR>" << endl;
+    } else {
+        for (const auto& kv : records) {
+            const Record* r = kv.second;
+            out << "          <TR>"
+                << "<TD ALIGN=\"LEFT\">" << r->id << "</TD>"
+                << "<TD ALIGN=\"LEFT\">" << kindShort(r->kind) << "</TD>"
+                << "<TD ALIGN=\"LEFT\">" << r->type << "</TD>"
+                << "</TR>" << endl;
+        }
+    }
+    out << "        </TABLE>" << endl;
+    out << "      </TD></TR>" << endl;
+    out << "    </TABLE>>];" << endl;
+
+    // Recurse into child scopes, draw plain edges
+    for (auto* child : children) {
+        int childId = count;
+        child->generate_dot_content(count, out);
+        out << "  s" << myId << " -> s" << childId << ";" << endl;
+    }
+}
+
 };
 
 // ─────────────────────────────────────────────
@@ -125,6 +183,19 @@ public:
         root->printScope(0);
         cout << "====================" << endl;
     }
+
+void generate_dot() const {
+    ofstream out("symtable.dot");
+    out << "digraph SymbolTable {" << endl;
+    out << "  rankdir=TB;" << endl;
+    out << "  node [fontname=\"Helvetica\", fontsize=12];" << endl;
+    out << "  edge [color=black];" << endl;
+    int count = 0;
+    root->generate_dot_content(count, out);
+    out << "}" << endl;
+    out.close();
+    printf("\nBuilt symbol table at symtable.dot. Run 'make symtable' to generate the PDF.\n");
+}
 
     void resetTable() {
         root->resetScope();

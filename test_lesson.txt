@@ -1,12 +1,19 @@
-main(): int { 
+class DuplicateIdentifiers { //@error - semantic (Already Declared Class: 'DuplicateIdentifiers')
+  a: int
+  u: int //@error - semantic (Already Declared variable: 'a')
+  b: int
+  c: int
 
+  func(): boolean {
+    return true
+  }
+  func(): int { //@error - semantic (Already Declared Function: 'func')
+    return 1
+  }
+}
+
+main() : int {
+    y : int
     x : int
-    y : int 
-    x : float
-
-    y := 5
-    x := 7
-    z := 6
-
     return 0
 }

@@ -136,7 +136,8 @@ vars:            var stmtEnd {
 
                 | vars var stmtEnd {
                     $$ = new Node("VarDecl", "", yylineno);
-                    $$->children.push_back($2);
+                    $1->children.push_back($2);
+                    $$ = $1;
                 }
 
 method:         ID LP params RP COLON type stmtBl {
@@ -456,7 +457,6 @@ stmt:       PRINT LP expression RP {
                 $$ = new Node("AssignmentStatement", "", yylineno);
                 $$->children.push_back($1);
                 $$->children.push_back($3);
-
             }
             
             | FOR LP foropt1 COMMA foropt2 COMMA expression ASSIGNOP expression RP stmtBl {  /*for lab2, it always need to have a init and condition*/

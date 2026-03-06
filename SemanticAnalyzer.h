@@ -24,6 +24,7 @@ public:
     void analyze(Node* root) {
         if (!root) return;
         buildSymbolTable(root);
+        st.generate_dot();
     }
 
     // ── Symbol Table Construction + Semantic Checks ──────────────
@@ -32,7 +33,7 @@ public:
         if (!node) return;
 
         const string& type  = node->type;
-        const string& value = node->value;
+        const string& value = node->value; // kan döpas om till name
 
         if (type == "Program") {
             for (auto* child : node->children)
@@ -104,6 +105,9 @@ public:
                 reportError(node, "Undeclared identifier: '" + value + "'");
                 
             }
+
+
+
 
         } else {
             // Default pass-through: recurse all children
