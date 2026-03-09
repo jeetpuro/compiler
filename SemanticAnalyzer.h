@@ -156,7 +156,17 @@ public:
         // ── Equality: both operands must match (any type), result is boolean ──
         } else if (type == "EqExpression")    { return checkBinaryOp(node, "=",  "",        "boolean");
         } else if (type == "NotEqExpression") { return checkBinaryOp(node, "!=", "",        "boolean");
-        
+        } else if (type == "ArrayExperssion") {
+            return checkArrayAccess(node);
+
+        } else if (type == "FunctionCall") {
+        // Recurse children so undeclared-identifier checks still run on arguments
+        for (auto* child : node->children)
+            if (child) buildSymbolTable(child);
+        Record* r = st.lookup(value);
+        return r ? r->type : "unknown";
+
+
 
         } else {
             // Default pass-through: recurse all children
@@ -197,7 +207,8 @@ private:
             // both must be the same type AND numeric (int or float)
             bool isNumeric = (lhsType == "int" || lhsType == "float");
             valid = isNumeric && (lhsType == rhsType);
-            effectiveResult = lhsType; // int+int→int, float+float→float
+            if (resultType.empty())
+                effectiveResult = lhsType; // int+int→int, float+float→float
         } else if (requiredType.empty()) {
             valid = (lhsType == rhsType);   // equality ops: any matching type
         } else {
@@ -209,6 +220,30 @@ private:
             return "unknown";
         }
         return effectiveResult;
+    }
+
+
+    string checkArrayAccess(Node* node) {
+        if (node->children.size() < 2) return "unknown";
+
+        auto it = node->children.begin();
+        string arrType = buildSymbolTable(*it);   // children[0]: array
+        ++it;
+        string idxType = buildSymbolTable(*it);   // children[1]: index
+
+        if (arrType == "unknown" || idxType == "unknown") return "unknown";
+
+        if (idxType != "int") {
+            reportError(node, "Array index must be 'int', got '" + idxType + "'");
+            return "unknown";
+        }
+
+        if (arrType.size() < 2 || arrType.substr(arrType.size() - 2) != "[]") {
+            reportError(node, "Subscript applied to non-array type '" + arrType + "'");
+            return "unknown";
+        }
+
+        return arrType.substr(0, arrType.size() - 2); // strip "[]" → element type
     }
 
     // Tag the AST node with the error and print it.

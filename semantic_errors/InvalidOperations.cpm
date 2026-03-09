@@ -40,10 +40,10 @@ class MyClass {
   operator_test_work(): boolean {
     // correct examples (should pass semantic checks)
     i1 := i1 + i2
-    i1 := ia1[1] + ia2[2] // FIXA HÄR
-    i1 := c1.get_trash()[2] + i2 // FIXA HÄR
+    i1 := ia1[1] + ia2[2] 
+    i1 := c1.get_trash()[2] + i2
     b1 := b1 & b2
-    b1 := i1 < i2 // FIXA HÄR
+    b1 := i1 < i2
     return true
   }
 }
