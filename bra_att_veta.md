@@ -62,5 +62,9 @@ Note: For volatile vars, children shift by one (child 0 = Volatile, child 1 = ty
 verify fals positives
 for f in valid/*.cpm; do echo "$f:"; ./compiler "$f" 2>&1 | grep "error\|passed"; done
 
+not expression liggeer  i faktor delen i parsen, ska den verkligen vara  där`?
+
+NotExpression delen i sematic använder en funtion som jämnför 2 nodes, me nfrån negationexpression får vi bara 1 node. detta kan bli problem i framtiden
 
 
+ 

@@ -29,8 +29,8 @@ public:
 
     // ── Symbol Table Construction + Semantic Checks ──────────────
 
-    void buildSymbolTable(Node* node) {
-        if (!node) return;
+    string buildSymbolTable(Node* node) {
+        if (!node) return "";
 
         const string& type  = node->type;
         const string& value = node->value; // kan döpas om till name
@@ -101,19 +101,69 @@ public:
         } else if (type == "ID") {
             // This node is an identifier being USED (not declared).
             // Check: has it been declared in any visible scope?
-            if (!st.lookup(value)) {
+            Record* r = st.lookup(value);
+            if (!r) {
                 reportError(node, "Undeclared identifier: '" + value + "'");
-                
+                return "unknown";
             }
+            return r->type;
+
+        } else if (type == "Int") {
+            return "int";
+
+        } else if (type == "Float") {
+            return "float";
+
+        } else if (type == "Bool") {
+            return "boolean";
+
+        } else if (type == "AssignmentStatement") {
+            string lhsType = "";
+            string rhsType = "";
+            int idx = 0;
+            for (auto* child : node->children) {
+                if (!child) continue;
+                string t = buildSymbolTable(child);
+                if (idx == 0) lhsType = t;
+                else if (idx == 1) rhsType = t;
+                idx++;
+            }
+            if (!lhsType.empty() && !rhsType.empty()
+                && lhsType != "unknown" && rhsType != "unknown"
+                && lhsType != rhsType) {
+                reportError(node, "Type mismatch in assignment: '" + lhsType + "' := '" + rhsType + "'");
+            }
+        
+        // ── Arithmetic: both operands must be same numeric type (int or float) ──
+        } else if (type == "AddExpression")  { return checkBinaryOp(node, "+",  "numeric", "");
+        } else if (type == "SubExpression")  { return checkBinaryOp(node, "-",  "numeric", "");
+        } else if (type == "MultExpression") { return checkBinaryOp(node, "*",  "numeric", "");
+        } else if (type == "DivExpression")  { return checkBinaryOp(node, "/",  "numeric", "");
+        } else if (type == "PowerExpression"){ return checkBinaryOp(node, "^",  "numeric", "");
+
+        // ── Logical: both operands must be boolean, result is boolean ──
+        } else if (type == "AndExpression")  { return checkBinaryOp(node, "&",  "boolean", "boolean");
+        } else if (type == "OrExpression")   { return checkBinaryOp(node, "|",  "boolean", "boolean");
+        } else if (type == "NegationExpression") { return checkBinaryOp(node, "!", "boolean", "boolean"); 
+               
+        // ── Comparison: both operands must be int, result is boolean ──
+        } else if (type == "LessExpression")  { return checkBinaryOp(node, "<",  "numeric",     "boolean");
+        } else if (type == "MoreExpression")  { return checkBinaryOp(node, ">",  "numeric",     "boolean");
+        } else if (type == "LessEqExpression"){ return checkBinaryOp(node, "<=", "numeric",     "boolean");
+        } else if (type == "MoreEqExpression"){ return checkBinaryOp(node, ">=", "numeric",     "boolean");
 
 
-
+        // ── Equality: both operands must match (any type), result is boolean ──
+        } else if (type == "EqExpression")    { return checkBinaryOp(node, "=",  "",        "boolean");
+        } else if (type == "NotEqExpression") { return checkBinaryOp(node, "!=", "",        "boolean");
+        
 
         } else {
             // Default pass-through: recurse all children
             for (auto* child : node->children)
                 if (child) buildSymbolTable(child);
         }
+    return "";
     }
 
 private:
@@ -124,6 +174,41 @@ private:
         if (node->type == "ArrayType" && !node->children.empty())
             return node->children.front()->value + "[]";
         return node->value;
+    }
+
+    // Evaluate both children, enforce type rules, return result type.
+    // requiredType: both operands must be this type. Empty = they just must match each other.
+    // resultType:   the type this expression produces (e.g. "boolean" for comparisons).
+    string checkBinaryOp(Node* node, const string& op,
+                         const string& requiredType, const string& resultType) {
+        string lhsType = "", rhsType = "";
+        int idx = 0;
+        for (auto* child : node->children) {
+            if (!child) continue;
+            string t = buildSymbolTable(child);
+            if (idx == 0) lhsType = t;
+            else if (idx == 1) rhsType = t;
+            idx++;
+        }
+        if (lhsType == "unknown" || rhsType == "unknown") return "unknown";
+        bool valid;
+        string effectiveResult = resultType;
+        if (requiredType == "numeric") {
+            // both must be the same type AND numeric (int or float)
+            bool isNumeric = (lhsType == "int" || lhsType == "float");
+            valid = isNumeric && (lhsType == rhsType);
+            effectiveResult = lhsType; // int+int→int, float+float→float
+        } else if (requiredType.empty()) {
+            valid = (lhsType == rhsType);   // equality ops: any matching type
+        } else {
+            valid = (lhsType == requiredType && rhsType == requiredType); // typed ops
+        }
+        if (!valid) {
+            reportError(node, "invalid operand type for '" + op + "': "
+                              + lhsType + " " + op + " " + rhsType);
+            return "unknown";
+        }
+        return effectiveResult;
     }
 
     // Tag the AST node with the error and print it.

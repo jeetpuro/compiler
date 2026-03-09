@@ -1,19 +1,7 @@
-class DuplicateIdentifiers { //@error - semantic (Already Declared Class: 'DuplicateIdentifiers')
-  a: int
-  u: int //@error - semantic (Already Declared variable: 'a')
-  b: int
-  c: int
-
-  func(): boolean {
-    return true
-  }
-  func(): int { //@error - semantic (Already Declared Function: 'func')
-    return 1
-  }
-}
-
 main() : int {
     y : int
-    x : int
+    x : float
+    x := 2.2 
+    y := 2.0 + x
     return 0
 }

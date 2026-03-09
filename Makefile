@@ -12,6 +12,8 @@ tree_semantic:
 		dot -Tpdf tree_semantic.dot -otree_semantic.pdf
 symtable:
 		dot -Tpdf symtable.dot -osymtable.pdf
+
+all_tree: tree tree_semantic symtable
 		
 clean:
 		rm -f parser.tab.* lex.yy.c* compiler stack.hh position.hh location.hh tree.dot tree.pdf tree_semantic.dot tree_semantic.pdf symtable.dot symtable.pdf
