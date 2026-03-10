@@ -1,8 +1,8 @@
 class MissingReturnStatement {
 
   test(): int {
-    a := 5
-    b := 10
+    a := 5 // Undeclared semantic error missing 
+    b := 10 // Undeclared semantic error missing 
     // @error - semantic (missing return statement in non-void method)
   }
 

@@ -95,6 +95,16 @@ public:
             st.exitScope();
             currentMethodRetType = savedRetType;
 
+            // Check for missing return in non-void method
+            if (retType != "void" && retType != "unknown") {
+                Node* stmtsNode = nullptr;
+                for (auto* child : node->children)
+                    if (child && child->type == "Statements") { stmtsNode = child; break; }
+                if (stmtsNode && !hasReturn(stmtsNode)) {
+                    reportError(node, "Missing return statement in non-void method '" + value + "'");
+                }
+            }
+
         } else if (type == "Param") {
             // children[0] is the Type node
             string typeStr = "unknown";
@@ -124,6 +134,19 @@ public:
             for (auto* child : node->children)
                 if (child) buildSymbolTable(child);
             st.exitScope();
+        } else if (type == "Statements") {
+            bool seenReturn = false;
+            for (auto* child : node->children) {
+                if (!child) continue;
+                if (seenReturn) {
+                    reportError(child, "Unreachable statement after return");
+                    // Still recurse so the debugger marks the node visited
+                    buildSymbolTable(child);
+                } else {
+                    buildSymbolTable(child);
+                    if (child->type == "ReturnStatement") seenReturn = true;
+                }
+            }
         } else if (type == "ReturnStatement") {
             if (!node->children.empty()) {
                 string retType = buildSymbolTable(node->children.front());
@@ -303,6 +326,15 @@ private:
         }
 
         return arrType.substr(0, arrType.size() - 2); // strip "[]" → element type
+    }
+
+    // Returns true if node (or any descendant) is a ReturnStatement.
+    static bool hasReturn(Node* node) {
+        if (!node) return false;
+        if (node->type == "ReturnStatement") return true;
+        for (auto* child : node->children)
+            if (hasReturn(child)) return true;
+        return false;
     }
 
     // Tag the AST node with the error and print it.
