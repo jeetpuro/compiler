@@ -32,10 +32,13 @@ public:
     string buildSymbolTable(Node* node) {
         if (!node) return "";
 
+        node->visited = true;  // mark as checked for the semantic debugger
+
         const string& type  = node->type;
         const string& value = node->value; // kan döpas om till name
 
         if (type == "Program") {
+
             for (auto* child : node->children)
                 if (child) buildSymbolTable(child);
 
@@ -45,23 +48,33 @@ public:
                 reportError(node, "Already Declared Class: '" + value + "'");
             }
             st.enterScope("class:" + value);
+
+            // Pre-register all method signatures so that forward calls within
+            // the class (e.g. a1 calling a2 before a2 is declared) resolve correctly.
+            for (auto* child : node->children) {
+                if (!child || child->type != "Methods") continue;
+                for (auto* method : child->children) {
+                    if (!method || method->type != "Method") continue;
+                    string retType = "unknown";
+                    for (auto* mc : method->children) {
+                        if (mc && (mc->type == "Type" || mc->type == "ArrayType")) {
+                            retType = getTypeStr(mc);
+                            break;
+                        }
+                    }
+                    if (!st.put(method->value, new Record(method->value, "method", retType))) {
+                        reportError(method, "Already Declared Function: '" + method->value + "'");
+                    }
+                }
+            }
+
             for (auto* child : node->children)
                 if (child) buildSymbolTable(child);
             st.exitScope();
 
         } else if (type == "Method") {
-            // Find return type node (first Type or ArrayType child)
-            string retType = "unknown";
-            for (auto* child : node->children) {
-                if (child && (child->type == "Type" || child->type == "ArrayType")) {
-                    retType = getTypeStr(child);
-                    break;
-                }
-            }
-            // Register method in the class scope (before entering method scope)
-            if (!st.put(value, new Record(value, "method", retType))) {
-                reportError(node, "Already Declared Function: '" + value + "'");
-            }
+            // Signature already pre-registered in the Class handler above.
+            // Just enter the method scope and process the body.
             st.enterScope("method:" + value);
             for (auto* child : node->children)
                 if (child) buildSymbolTable(child);
@@ -96,7 +109,10 @@ public:
             for (auto* child : node->children)
                 if (child) buildSymbolTable(child);
             st.exitScope();
-
+        } else if (type == "IfElseStatement") {
+            printf("Entering if-else scope\n");
+            for (auto* child : node->children)
+                if (child) buildSymbolTable(child);
         // ──────── NEW CHECK: Undeclared identifiers ────────
         } else if (type == "ID") {
             // This node is an identifier being USED (not declared).
@@ -165,8 +181,15 @@ public:
             if (child) buildSymbolTable(child);
         Record* r = st.lookup(value);
         return r ? r->type : "unknown";
-
-
+        } else if (type == "LengthFunction") {
+            if (node->children.empty()) return "unknown";
+            string operandType = buildSymbolTable(node->children.front());
+            if (operandType == "unknown") return "unknown";
+            if (operandType.size() < 2 || operandType.substr(operandType.size() - 2) != "[]") {
+                reportError(node, "'.length' applied to non-array type '" + operandType + "'");
+                return "unknown";
+            }
+            return "int";
 
         } else {
             // Default pass-through: recurse all children
@@ -227,9 +250,19 @@ private:
         if (node->children.size() < 2) return "unknown";
 
         auto it = node->children.begin();
-        string arrType = buildSymbolTable(*it);   // children[0]: array
+        Node* arrChild = *it;
         ++it;
-        string idxType = buildSymbolTable(*it);   // children[1]: index
+        Node* idxChild = *it;
+
+        string arrType = buildSymbolTable(arrChild);  // children[0]: array
+        string idxType = buildSymbolTable(idxChild);  // children[1]: index
+
+        // Function calls are not valid as array indices — even if they return int.
+        // An index must be a plain integer literal or variable.
+        if (idxChild->type == "FunctionCall") {
+            reportError(node, "Function call not valid as array index: '" + idxChild->value + "()'");
+            return "unknown";
+        }
 
         if (arrType == "unknown" || idxType == "unknown") return "unknown";
 

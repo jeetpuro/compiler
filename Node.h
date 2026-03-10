@@ -16,6 +16,7 @@ public:
 	int id, lineno;
 	string type, value;
 	string errorMsg = "";   // set by buildSymbolTable when a semantic error is found
+	bool visited = false;    // set by SemanticAnalyzer when this node is checked
 	list<Node*> children;
 	Node(string t, string v, int l) : type(t), value(v), lineno(l){}
 	Node()
@@ -94,6 +95,11 @@ public:
 			     << " [label=\"" << lbl << "\\n" << esc(errorMsg) << "\""
 			     << ", style=filled, fillcolor=red, fontcolor=white"
 			     << ", shape=doubleoctagon];" << endl;
+		} else if (visited) {
+			// Green — semantically checked node
+			*out << "n" << id
+			     << " [label=\"" << lbl << "\""
+			     << ", style=filled, fillcolor=\"#90EE90\"];" << endl;
 		} else {
 			*out << "n" << id
 			     << " [label=\"" << lbl << "\"];" << endl;
