@@ -25,7 +25,7 @@ class A {             // THESE TEST HAS SYNTAX ERRORS CAN'T BE RUN - Alexander a
 
     b := a1(a3()).a3() //@error - semantic (invalid argument type for a1: expected int, got boolean)
 
-    b := x.a1(y.a1(a4()).a4()).a3() //@error - semantic (invalid argument type for inner a1: expected int, got int from a4() ok, but y.a1(...) returns A, then .a4() invalid on A? see below)
+    b := x.a1(y.a1(a4()).a4()).a3() // DEN HÄR ÄR INTE FEL DEN ÄR KORREKT! //@error - semantic (invalid argument type for inner a1: expected int, got int from a4() ok, but y.a1(...) returns A, then .a4() invalid on A? see below)
 
     b := x.a1(y.a1(2).a3()).a3() //@error - semantic (invalid argument type for a1: expected int, got boolean from a3())
 

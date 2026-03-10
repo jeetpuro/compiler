@@ -21,9 +21,12 @@ public:
 
 private:
     string currentMethodRetType = "";  // declared return type of the method being analysed
+    string currentClassName = "";       // class currently being analysed
     // className → (methodName → returnType): populated by preScanClasses() before
     // the main analysis pass so dot-calls can resolve forward-referenced classes.
     map<string, map<string, string>> classMethods;
+    // className → (methodName → [paramTypes]): populated by preScanClasses()
+    map<string, map<string, vector<string>>> classMethodParams;
 
 public:
 
@@ -72,6 +75,8 @@ public:
             // st.put fails AND the existing record was NOT put by the pre-scan
             // (i.e. there is a genuine re-declaration by the user).
             // We skip re-inserting here — just open the scope.
+            string savedClassName = currentClassName;
+            currentClassName = value;
             st.enterScope("class:" + value);
 
             // Pre-register all method signatures so that forward calls within
@@ -96,6 +101,7 @@ public:
             for (auto* child : node->children)
                 if (child) buildSymbolTable(child);
             st.exitScope();
+            currentClassName = savedClassName;
 
         } else if (type == "Method") {
             // Signature already pre-registered in the Class handler above.
@@ -265,18 +271,21 @@ public:
         } else if (type == "FunctionCall") {
         // A dot-call (expr.method()) has children[0] as the receiver expression.
         // A bare call (method()) has no children, or children[0] is the argument
-        // list node (type "Expression"). Distinguish by the first child's type.Fv
+        // list node (type "Expression"). Distinguish by the first child's type.
         bool isDotCall = !node->children.empty()
                       && node->children.front()->type != "Expression";
         if (isDotCall) {
             // Evaluate the receiver to determine its class type
             string receiverType = buildSymbolTable(node->children.front());
-            // Recurse remaining children (arguments)
+            if (receiverType == "unknown") return "unknown";
+
+            // Check argument types against parameter types
             auto it = node->children.begin();
             ++it;
-            for (; it != node->children.end(); ++it)
-                if (*it) buildSymbolTable(*it);
-            if (receiverType == "unknown") return "unknown";
+            if (it != node->children.end() && (*it)->type == "Expression") {
+                checkFunctionArgs(node, *it, receiverType, value);
+            }
+
             string retType = lookupMethodInClass(receiverType, value);
             if (retType.empty()) {
                 reportError(node, "Undeclared method '" + value
@@ -285,9 +294,11 @@ public:
             }
             return retType;
         } else {
-            // Bare call: recurse all children (arguments)
-            for (auto* child : node->children)
-                if (child) buildSymbolTable(child);
+            // Bare call: check arguments if Expression child exists
+            if (!node->children.empty() && node->children.front()->type == "Expression") {
+                checkFunctionArgs(node, node->children.front(), currentClassName, value);
+            }
+
             Record* r = st.lookup(value);
             if (!r) {
                 reportError(node, "Undeclared method: '" + value + "'");
@@ -307,6 +318,20 @@ public:
                 return "unknown";
             }
             return "int";
+
+
+            
+        } else if (type == "Expression") {
+            // Expression is an argument list node for FunctionCall.
+            // Evaluate all children and return the type of the first child
+            // (used when Expression wraps a single sub-expression).
+            string firstType = "";
+            for (auto* child : node->children) {
+                if (!child) continue;
+                string t = buildSymbolTable(child);
+                if (firstType.empty()) firstType = t;
+            }
+            return !firstType.empty() ? firstType : "unknown";
 
         } else {
             // Default pass-through: recurse all children
@@ -338,8 +363,21 @@ private:
                         }
                     }
                     classMethods[className][method->value] = retType;
-                    printf("[preScan] class=%s method=%s retType=%s\n",
-                           className.c_str(), method->value.c_str(), retType.c_str());
+
+                    // Also collect parameter types
+                    vector<string> paramTypes;
+                    for (auto* mc : method->children) {
+                        if (mc && mc->type == "Params") {
+                            for (auto* param : mc->children) {
+                                if (param && param->type == "Param" && !param->children.empty())
+                                    paramTypes.push_back(getTypeStr(param->children.front()));
+                            }
+                        }
+                    }
+                    classMethodParams[className][method->value] = paramTypes;
+
+                    printf("[preScan] class=%s method=%s retType=%s params=%zu\n",
+                           className.c_str(), method->value.c_str(), retType.c_str(), paramTypes.size());
                 }
             }
             return;  // don't recurse further — we only need the top-level class members
@@ -356,6 +394,56 @@ private:
         auto mit = cit->second.find(methodName);
         if (mit == cit->second.end()) return "";
         return mit->second;
+    }
+
+    // Look up a method's parameter types in a specific class.
+    vector<string> lookupMethodParamsInClass(const string& className, const string& methodName) const {
+        auto cit = classMethodParams.find(className);
+        if (cit == classMethodParams.end()) return {};
+        auto mit = cit->second.find(methodName);
+        if (mit == cit->second.end()) return {};
+        return mit->second;
+    }
+
+    // Check that argument types in an Expression node match the expected parameter types.
+    void checkFunctionArgs(Node* callNode, Node* exprNode,
+                           const string& className, const string& methodName) {
+        vector<string> expectedParams = lookupMethodParamsInClass(className, methodName);
+        if (expectedParams.empty() && classMethodParams.count(className)
+            && classMethodParams.at(className).count(methodName)) {
+            // Method exists but has zero params — still check arg count
+            expectedParams = {};
+        }
+
+        // Collect argument types from Expression children
+        vector<string> argTypes;
+        for (auto* arg : exprNode->children) {
+            if (!arg) continue;
+            argTypes.push_back(buildSymbolTable(arg));
+        }
+
+        // If we couldn't find the method params, skip the check
+        if (!classMethodParams.count(className)
+            || !classMethodParams.at(className).count(methodName)) return;
+
+        // Check argument count
+        if (argTypes.size() != expectedParams.size()) {
+            reportError(callNode, "Wrong number of arguments for '" + methodName
+                + "': expected " + to_string(expectedParams.size())
+                + ", got " + to_string(argTypes.size()));
+            return;
+        }
+
+        // Check each argument type
+        for (size_t i = 0; i < argTypes.size(); i++) {
+            if (argTypes[i] == "unknown" || expectedParams[i] == "unknown") continue;
+            if (argTypes[i] != expectedParams[i]) {
+                reportError(callNode, "Argument type mismatch for '" + methodName
+                    + "': parameter " + to_string(i + 1)
+                    + " expected '" + expectedParams[i]
+                    + "', got '" + argTypes[i] + "'");
+            }
+        }
     }
 
     // Returns the type string for a "Type" or "ArrayType" node.
