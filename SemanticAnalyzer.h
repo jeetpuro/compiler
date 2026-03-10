@@ -21,6 +21,9 @@ public:
 
 private:
     string currentMethodRetType = "";  // declared return type of the method being analysed
+    // className → (methodName → returnType): populated by preScanClasses() before
+    // the main analysis pass so dot-calls can resolve forward-referenced classes.
+    map<string, map<string, string>> classMethods;
 
 public:
 
@@ -28,6 +31,7 @@ public:
 
     void analyze(Node* root) {
         if (!root) return;
+        preScanClasses(root);   // must run first so all class method types are known
         buildSymbolTable(root);
         st.generate_dot();
     }
@@ -44,14 +48,30 @@ public:
 
         if (type == "Program") {
 
+            // Pre-register every class name into global scope so that forward
+            // references (e.g. `volatile d: classdata` before classdata is declared)
+            // are visible when VarDecl checks the type.
+            for (auto* child : node->children) {
+                if (!child) continue;
+                // The Classes node holds the list of Class nodes
+                if (child->type == "Classes") {
+                    for (auto* cls : child->children) {
+                        if (cls && cls->type == "Class")
+                            st.put(cls->value, new Record(cls->value, "class", "class"));
+                    }
+                } else if (child->type == "Class") {
+                    st.put(child->value, new Record(child->value, "class", "class"));
+                }
+            }
+
             for (auto* child : node->children)
                 if (child) buildSymbolTable(child);
 
         } else if (type == "Class") {
-            // Register class name in the current (global) scope
-            if (!st.put(value, new Record(value, "class", "class"))) {
-                reportError(node, "Already Declared Class: '" + value + "'");
-            }
+            // Class name is already pre-registered above; only report duplicate if
+            // st.put fails AND the existing record was NOT put by the pre-scan
+            // (i.e. there is a genuine re-declaration by the user).
+            // We skip re-inserting here — just open the scope.
             st.enterScope("class:" + value);
 
             // Pre-register all method signatures so that forward calls within
@@ -127,7 +147,25 @@ public:
             if (!st.put(value, new Record(value, "variable", typeStr))) {
                 reportError(node, "Already Declared variable: '" + value + "'");
             }
-            // No need to recurse: children are just a Type node
+            // If the declared type looks like a class name (not a primitive built
+            // into the grammar), verify that it is actually declared as a class.
+            // We detect primitives by what the grammar produces for baseType nodes:
+            // "int", "float", "boolean", "void", "unknown" — everything else must
+            // be a user-declared class.
+            {
+                string baseType = typeStr;
+                if (baseType.size() > 2 && baseType.substr(baseType.size()-2) == "[]")
+                    baseType = baseType.substr(0, baseType.size()-2);
+                // Grammar primitives — no lookup needed
+                bool isPrimitive = (baseType == "int" || baseType == "float" ||
+                                    baseType == "boolean" || baseType == "void" ||
+                                    baseType == "unknown");
+                if (!isPrimitive) {
+                    Record* cls = st.lookup(baseType);
+                    if (!cls || cls->kind != "class")
+                        reportError(node, "Undeclared type: '" + baseType + "'");
+                }
+            }
 
         } else if (type == "MainStatement") {
             st.enterScope("main");
@@ -225,11 +263,41 @@ public:
             return checkArrayAccess(node);
 
         } else if (type == "FunctionCall") {
-        // Recurse children so undeclared-identifier checks still run on arguments
-        for (auto* child : node->children)
-            if (child) buildSymbolTable(child);
-        Record* r = st.lookup(value);
-        return r ? r->type : "unknown";
+        // A dot-call (expr.method()) has children[0] as the receiver expression.
+        // A bare call (method()) has no children, or children[0] is the argument
+        // list node (type "Expression"). Distinguish by the first child's type.Fv
+        bool isDotCall = !node->children.empty()
+                      && node->children.front()->type != "Expression";
+        if (isDotCall) {
+            // Evaluate the receiver to determine its class type
+            string receiverType = buildSymbolTable(node->children.front());
+            // Recurse remaining children (arguments)
+            auto it = node->children.begin();
+            ++it;
+            for (; it != node->children.end(); ++it)
+                if (*it) buildSymbolTable(*it);
+            if (receiverType == "unknown") return "unknown";
+            string retType = lookupMethodInClass(receiverType, value);
+            if (retType.empty()) {
+                reportError(node, "Undeclared method '" + value
+                                  + "' in class '" + receiverType + "'");
+                return "unknown";
+            }
+            return retType;
+        } else {
+            // Bare call: recurse all children (arguments)
+            for (auto* child : node->children)
+                if (child) buildSymbolTable(child);
+            Record* r = st.lookup(value);
+            if (!r) {
+                reportError(node, "Undeclared method: '" + value + "'");
+                return "unknown";
+            }
+            // Constructor call (e.g. MyClass()): return class name as instance type
+            if (r->kind == "class") return r->id;
+            return r->type;
+        }
+
         } else if (type == "LengthFunction") {
             if (node->children.empty()) return "unknown";
             string operandType = buildSymbolTable(node->children.front());
@@ -250,6 +318,45 @@ public:
 
 private:
     // ── Helpers ──────────────────────────────────────────────────
+
+    // Shallow scan: walk the AST looking for Class nodes and record every
+    // method's return type. Called once before buildSymbolTable so that
+    // dot-call resolution works even for forward-referenced classes.
+    void preScanClasses(Node* node) {
+        if (!node) return;
+        if (node->type == "Class") {
+            const string& className = node->value;
+            for (auto* child : node->children) {
+                if (!child || child->type != "Methods") continue;
+                for (auto* method : child->children) {
+                    if (!method || method->type != "Method") continue;
+                    string retType = "unknown";
+                    for (auto* mc : method->children) {
+                        if (mc && (mc->type == "Type" || mc->type == "ArrayType")) {
+                            retType = getTypeStr(mc);
+                            break;
+                        }
+                    }
+                    classMethods[className][method->value] = retType;
+                    printf("[preScan] class=%s method=%s retType=%s\n",
+                           className.c_str(), method->value.c_str(), retType.c_str());
+                }
+            }
+            return;  // don't recurse further — we only need the top-level class members
+        }
+        for (auto* child : node->children)
+            if (child) preScanClasses(child);
+    }
+
+    // Look up a method's return type in a specific class (uses the pre-scanned map).
+    // Returns "" if the class or method is not found.
+    string lookupMethodInClass(const string& className, const string& methodName) const {
+        auto cit = classMethods.find(className);
+        if (cit == classMethods.end()) return "";
+        auto mit = cit->second.find(methodName);
+        if (mit == cit->second.end()) return "";
+        return mit->second;
+    }
 
     // Returns the type string for a "Type" or "ArrayType" node.
     static string getTypeStr(const Node* node) {

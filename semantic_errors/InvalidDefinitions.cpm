@@ -4,7 +4,7 @@ class MyClass { // THESE TEST HAS SYNTAX ERRORS CAN'T BE RUN - Alexander added t
   volatile c: int[]
   volatile d: classdata
 
-  int aFunc() { //wrong syntax (SUJEB FIX)
+  aFunc(): int{ //wrong syntax (SUJEB FIX)
     e := a //@error - semantic ('e' does not exist in the current scope)
 
     a := d.yFunc() //@error - semantic ('a' and expression 'd.yFunc()' are of different types)
@@ -13,7 +13,7 @@ class MyClass { // THESE TEST HAS SYNTAX ERRORS CAN'T BE RUN - Alexander added t
     return a
   }
 
-  boolean bFunc() { //wrong syntax (SUJEB FIX)
+  bFunc(): boolean { //wrong syntax (SUJEB FIX)
     b := d.zzFunc() //@error - semantic ('zzFunc' does not exist)
 
     a := d.xFunc()
@@ -26,13 +26,13 @@ class MyClass { // THESE TEST HAS SYNTAX ERRORS CAN'T BE RUN - Alexander added t
     return b
   }
 
-  int[] cFunc() { //wrong syntax (SUJEB FIX)
+  cFunc(): int[]{ //wrong syntax (SUJEB FIX)
     c := d.xFunc() //@error - semantic ('c' and expression 'd.xFunc()' are of different types)
     c := d.yFunc() //@error - semantic ('c' and expression 'd.yFunc()' are of different types)
     return c
   }
 
-  classdata dFunc() { //wrong syntax (SUJEB FIX)
+  dFunc(): classdata { //wrong syntax (SUJEB FIX)
     d := d.xFunc() //@error - semantic ('d' and expression 'd.xFunc()' are of different types)
     d := d.yFunc() //@error - semantic ('d' and expression 'd.yFunc()' are of different types)
     d := d.zFunc() //@error - semantic ('d' and expression 'd.zFunc()' are of different types)
@@ -41,7 +41,7 @@ class MyClass { // THESE TEST HAS SYNTAX ERRORS CAN'T BE RUN - Alexander added t
     return d
   }
 
-  boolean EFUNC() { //wrong syntax (SUJEB FIX)
+  EFUNC(): boolean { //wrong syntax (SUJEB FIX)
     a := b //@error - semantic ('a' and expression 'b' are of different types)
     a := c //@error - semantic ('a' and expression 'c' are of different types)
     a := d //@error - semantic ('a' and expression 'd' are of different types)
@@ -70,15 +70,15 @@ class classdata {
   pem: classthatdoesntExist //@error - semantic ('classthatdoesntExist' is undefined)
   pen: thatdoExist
 
-  int xFunc() {
+  xFunc(): int {
     return x
   }
 
-  boolean yFunc() {
+  yFunc(): boolean {
     return y
   }
 
-  int[] zFunc() {
+  zFunc(): int[] {
     return z
   }
 }
@@ -86,7 +86,7 @@ class classdata {
 class VarUsedBeforeDefinition {
   volatile a: int
 
-  int b(p: int) {
+   b(p: int): int {
     a := 10
     p := 10 //@error - semantic (assignment to immutable parameter, if you enforce that rule)
 
