@@ -1,10 +1,10 @@
-class MyClass {
+class MyClass { // THESE TEST HAS SYNTAX ERRORS CAN'T BE RUN - Alexander added this Jeet is gay
   volatile a: int
   volatile b: boolean
   volatile c: int[]
   volatile d: classdata
 
-  int aFunc() {
+  int aFunc() { //wrong syntax (SUJEB FIX)
     e := a //@error - semantic ('e' does not exist in the current scope)
 
     a := d.yFunc() //@error - semantic ('a' and expression 'd.yFunc()' are of different types)
@@ -13,7 +13,7 @@ class MyClass {
     return a
   }
 
-  boolean bFunc() {
+  boolean bFunc() { //wrong syntax (SUJEB FIX)
     b := d.zzFunc() //@error - semantic ('zzFunc' does not exist)
 
     a := d.xFunc()
@@ -26,13 +26,13 @@ class MyClass {
     return b
   }
 
-  int[] cFunc() {
+  int[] cFunc() { //wrong syntax (SUJEB FIX)
     c := d.xFunc() //@error - semantic ('c' and expression 'd.xFunc()' are of different types)
     c := d.yFunc() //@error - semantic ('c' and expression 'd.yFunc()' are of different types)
     return c
   }
 
-  classdata dFunc() {
+  classdata dFunc() { //wrong syntax (SUJEB FIX)
     d := d.xFunc() //@error - semantic ('d' and expression 'd.xFunc()' are of different types)
     d := d.yFunc() //@error - semantic ('d' and expression 'd.yFunc()' are of different types)
     d := d.zFunc() //@error - semantic ('d' and expression 'd.zFunc()' are of different types)
@@ -41,7 +41,7 @@ class MyClass {
     return d
   }
 
-  boolean EFUNC() {
+  boolean EFUNC() { //wrong syntax (SUJEB FIX)
     a := b //@error - semantic ('a' and expression 'b' are of different types)
     a := c //@error - semantic ('a' and expression 'c' are of different types)
     a := d //@error - semantic ('a' and expression 'd' are of different types)
