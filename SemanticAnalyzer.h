@@ -253,7 +253,15 @@ public:
         // ── Logical: both operands must be boolean, result is boolean ──
         } else if (type == "AndExpression")  { return checkBinaryOp(node, "&",  "boolean", "boolean");
         } else if (type == "OrExpression")   { return checkBinaryOp(node, "|",  "boolean", "boolean");
-        } else if (type == "NegationExpression") { return checkBinaryOp(node, "!", "boolean", "boolean"); 
+        } else if (type == "NegationExpression") {
+            if (node->children.empty()) return "unknown";
+            string operandType = buildSymbolTable(node->children.front());
+            if (operandType == "unknown") return "unknown";
+            if (operandType != "boolean") {
+                reportError(node, "invalid operand type for '!': expected 'boolean', got '" + operandType + "'");
+                return "unknown";
+            }
+            return "boolean";
                
         // ── Comparison: both operands must be int, result is boolean ──
         } else if (type == "LessExpression")  { return checkBinaryOp(node, "<",  "numeric",     "boolean");
