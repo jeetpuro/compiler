@@ -19,6 +19,11 @@ public:
     SymbolTable st;
     int errors = 0;
 
+private:
+    string currentMethodRetType = "";  // declared return type of the method being analysed
+
+public:
+
     // ── Entry point ──────────────────────────────────────────────
 
     void analyze(Node* root) {
@@ -74,11 +79,21 @@ public:
 
         } else if (type == "Method") {
             // Signature already pre-registered in the Class handler above.
-            // Just enter the method scope and process the body.
+            // Resolve this method's declared return type so ReturnStatement can check it.
+            string retType = "unknown";
+            for (auto* child : node->children) {
+                if (child && (child->type == "Type" || child->type == "ArrayType")) {
+                    retType = getTypeStr(child);
+                    break;
+                }
+            }
+            string savedRetType = currentMethodRetType;
+            currentMethodRetType = retType;
             st.enterScope("method:" + value);
             for (auto* child : node->children)
                 if (child) buildSymbolTable(child);
             st.exitScope();
+            currentMethodRetType = savedRetType;
 
         } else if (type == "Param") {
             // children[0] is the Type node
@@ -109,6 +124,17 @@ public:
             for (auto* child : node->children)
                 if (child) buildSymbolTable(child);
             st.exitScope();
+        } else if (type == "ReturnStatement") {
+            if (!node->children.empty()) {
+                string retType = buildSymbolTable(node->children.front());
+                if (!currentMethodRetType.empty()
+                    && currentMethodRetType != "unknown"
+                    && retType != "unknown"
+                    && retType != currentMethodRetType) {
+                    reportError(node, "Return type mismatch: expected '"
+                        + currentMethodRetType + "', got '" + retType + "'");
+                }
+            }
         } else if (type == "IfElseStatement") {
             printf("Entering if-else scope\n");
             for (auto* child : node->children)
