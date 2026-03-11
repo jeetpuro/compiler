@@ -287,12 +287,11 @@ public:
             string receiverType = buildSymbolTable(node->children.front());
             if (receiverType == "unknown") return "unknown";
 
-            // Check argument types against parameter types
+            // Check argument types against parameter types (nullptr = zero args)
             auto it = node->children.begin();
             ++it;
-            if (it != node->children.end() && (*it)->type == "Expression") {
-                checkFunctionArgs(node, *it, receiverType, value);
-            }
+            Node* exprChild = (it != node->children.end() && (*it)->type == "Expression") ? *it : nullptr;
+            checkFunctionArgs(node, exprChild, receiverType, value);
 
             string retType = lookupMethodInClass(receiverType, value);
             if (retType.empty()) {
@@ -302,10 +301,10 @@ public:
             }
             return retType;
         } else {
-            // Bare call: check arguments if Expression child exists
-            if (!node->children.empty() && node->children.front()->type == "Expression") {
-                checkFunctionArgs(node, node->children.front(), currentClassName, value);
-            }
+            // Bare call: check arguments (nullptr = zero args given)
+            Node* exprChild = (!node->children.empty() && node->children.front()->type == "Expression")
+                               ? node->children.front() : nullptr;
+            checkFunctionArgs(node, exprChild, currentClassName, value);
 
             Record* r = st.lookup(value);
             if (!r) {
@@ -423,11 +422,13 @@ private:
             expectedParams = {};
         }
 
-        // Collect argument types from Expression children
+        // Collect argument types from Expression children (exprNode is null when zero args given)
         vector<string> argTypes;
-        for (auto* arg : exprNode->children) {
-            if (!arg) continue;
-            argTypes.push_back(buildSymbolTable(arg));
+        if (exprNode) {
+            for (auto* arg : exprNode->children) {
+                if (!arg) continue;
+                argTypes.push_back(buildSymbolTable(arg));
+            }
         }
 
         // If we couldn't find the method params, skip the check
