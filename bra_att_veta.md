@@ -68,3 +68,4 @@ NotExpression delen i sematic använder en funtion som jämnför 2 nodes, me nfr
 
 
  
+---------------LAB 3 -------------------------------------------------

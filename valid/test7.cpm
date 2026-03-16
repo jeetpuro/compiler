@@ -32,7 +32,6 @@ class QS {
       cont := true
 
       for ( , cont , cont := cont ) {
-
         for ( , true , cont := cont ) {
           i := i + 1
           aux := number[i]
