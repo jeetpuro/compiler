@@ -1,5 +1,6 @@
 #include <iostream>
 #include "parser.tab.hh"
+#include "IRGenerator.h"
 #include "SemanticAnalyzer.h"
 #include <cstring>
 
@@ -169,6 +170,11 @@ int main(int argc, char **argv)
                 printf("\nSemantic errors found: %d\n", analyzer.errors);
                 errCode = errCodes::SEMANTIC_ERROR;
             } else {
+                IRGenerator irGenerator;
+                ProgramIR ir = irGenerator.generate(root);
+                irGenerator.printTAC(ir);
+                irGenerator.writeCFGDot(ir, "cfg.dot");
+                printf("\nBuilt CFG at cfg.dot. Run 'make cfg' to generate the PDF.\n");
                 printf("\nSemantic analysis passed with no errors.\n");
             }
         }
