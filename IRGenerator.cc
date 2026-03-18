@@ -55,7 +55,8 @@ IROp opForNode(const string& type) {
 	if (type == "EqExpression") return IROp::CmpEQ;
 	if (type == "NotEqExpression") return IROp::CmpNE;
 	if (type == "AndExpression") return IROp::And;
-	return IROp::Or;
+	if (type == "OrExpression") return IROp::Or;
+	throw runtime_error("Unsupported binary expression node type: " + type);
 }
 
 string toFunctionLabel(const string& ownerClass, const string& name) {
