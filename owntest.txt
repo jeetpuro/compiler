@@ -1,13 +1,22 @@
-class Fibonacci {
-  fib(n : int): int {
-    if (n < 3) {
-      return 1
-    } else {
-      return fib(n - 1) + fib(n - 2)
-    }
-  }
-}
-
 main(): int {
-    x:=2
+  a: int := 2
+  b: int := 4
+  c: float := 2.0
+  d: float := 8.1
+  e: int
+  f: float
+
+  print(a)
+  print(b)
+  print(c)
+  print(d)
+
+  e := a+b
+  f := d/c
+
+  print(e)
+  print(f)
+//// lägg in lågiska operation och gör alla todo som vi lagt in
+
+  return 0
 }

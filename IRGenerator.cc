@@ -42,6 +42,11 @@ bool isBinaryNode(const string& type) {
 		   type == "OrExpression";
 }
 
+bool isExpressionStatement(const string& type) {
+	return isBinaryNode(type) || type == "NegationExpression" ||
+		   type == "LengthFunction" || type == "ListExpression";
+}
+
 IROp opForNode(const string& type) {
 	if (type == "AddExpression") return IROp::Add;
 	if (type == "SubExpression") return IROp::Sub;
@@ -582,7 +587,7 @@ void IRGenerator::genStmt(Node* stmt) {
 		return;
 	}
 
-	if (stmt->type == "ID" || stmt->type == "ArrayExperssion" || isBinaryNode(stmt->type)) {
+	if (stmt->type == "ID" || stmt->type == "ArrayExperssion" || isExpressionStatement(stmt->type)) {
 		genExpr(stmt);
 	}
 }
