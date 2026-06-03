@@ -117,12 +117,36 @@ void CppCodeGen::genInstruction(const TAC& tac) { // TODO: lägga till operation
             out << tac.dst << " = std::pow(" << tac.src1 << ", " << tac.src2 << ");\n";
             break;
 
-        // Conditions
+         // Logical Operations
         case IROp::CmpLT:
             out << tac.dst << " = (" << tac.src1 << " < " << tac.src2 << ");\n";
             break;
         case IROp::CmpEQ:
             out << tac.dst << " = (" << tac.src1 << " == " << tac.src2 << ");\n";
+            break;
+
+        case IROp::CmpLE:
+            out << tac.dst << " = (" << tac.src1 << " <= " << tac.src2 << ");\n";
+            break;
+
+        case IROp::CmpGT:
+            out << tac.dst << " = (" << tac.src1 << " > " << tac.src2 << ");\n";
+            break;            
+
+        case IROp::CmpGE:
+            out << tac.dst << " = (" << tac.src1 << " >= " << tac.src2 << ");\n";
+            break;            
+            
+        case IROp::CmpNE:
+            out << tac.dst << " = (" << tac.src1 << " != " << tac.src2 << ");\n";
+            break;
+            
+        case IROp::And:
+            out << tac.dst << " = (" << tac.src1 << " && " << tac.src2 << ");\n";
+            break;
+
+        case IROp::Or:
+            out << tac.dst << " = (" << tac.src1 << " || " << tac.src2 << ");\n";
             break;
 
         // I/O Operations

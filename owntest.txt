@@ -5,6 +5,8 @@ main(): int {
   d: float := 8.1
   e: int
   f: float
+  
+
 
   print(a)
   print(b)
@@ -13,6 +15,12 @@ main(): int {
 
   e := a+b
   f := d/c
+
+  for (i := 2, i <= n, i := i + 1) {
+    x := x * i
+  }
+
+  print(x)
 
   print(e)
   print(f)

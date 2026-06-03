@@ -1,5 +1,4 @@
 #include "IRGenerator.h"
-
 #include <cctype>
 #include <sstream>
 #include <stdexcept>
@@ -542,13 +541,15 @@ void IRGenerator::genStmt(Node* stmt) {
 			}
 			string condValue = genExpr(condExpr);
 			emit(IROp::IfFalseGoto, "", condValue, "", to_string(exitBlockId), stmt->lineno);
+			emit(IROp::Goto, "", "", "", to_string(bodyBlockId), stmt->lineno);
+
 			addEdge(condBlockId, bodyBlockId);
 			addEdge(condBlockId, exitBlockId);
 		} else {
 			emit(IROp::Goto, "", "", "", to_string(bodyBlockId), stmt->lineno);
 			addEdge(condBlockId, bodyBlockId);
 		}
-
+		//TODO: Kolla copilot chattttt
 		breakTargets.push_back(exitBlockId);
 		continueTargets.push_back(stepBlockId);
 

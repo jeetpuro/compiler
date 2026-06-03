@@ -16,9 +16,9 @@ cfg:
 		dot -Tpdf cfg.dot -ocfg.pdf
 
 run_codegen: compiler
-	./compiler valid/test1.cpm
+	./compiler valid/test2.cpm
 	g++ output.cpp -o program_exec
-	./program_exec
+	
 
 all_tree: tree tree_semantic symtable cfg
 		
