@@ -13,6 +13,34 @@ void CppCodeGen::generate(const ProgramIR& ir, const string& outputFile) {
 
     genHeaders();
 
+    // Identify functions that return void (no Return with a value)
+    voidFunctions.clear();
+    for (const auto& kv : ir.functions) {
+        if (kv.first == "main") continue;
+        bool hasValueReturn = false;
+        for (const BasicBlock& block : kv.second.blocks)
+            for (const TAC& tac : block.code)
+                if (tac.op == IROp::Return && !tac.src1.empty()) hasValueReturn = true;
+        if (!hasValueReturn) voidFunctions.insert(kv.first);
+    }
+
+    // Collect and emit class fields as globals (accessible across all methods)
+    classFieldVars.clear();
+    classArrayFieldVars.clear();
+    for (const auto& kv : ir.classFields) {
+        for (const string& f : kv.second) classFieldVars.insert(f);
+    }
+    for (const auto& kv : ir.classArrayFields) {
+        for (const string& f : kv.second) classArrayFieldVars.insert(f);
+    }
+    for (const string& f : classFieldVars) {
+        out << "double " << f << " = 0;\n";
+    }
+    for (const string& f : classArrayFieldVars) {
+        out << "std::vector<double> " << f << ";\n";
+    }
+    if (!classFieldVars.empty() || !classArrayFieldVars.empty()) out << "\n";
+
     // Iterate through all functions in the IR
     for (const auto& kv : ir.functions) {
         genFunction(kv.second);
@@ -26,27 +54,62 @@ void CppCodeGen::genHeaders() {
     out << "#include <iostream>\n";
     out << "#include <cmath>\n";
     out << "#include <string>\n\n"; // TODO lägga till headers
+    out << "#include <vector>\n";
 }
 
 
 void CppCodeGen::genFunction(const FunctionIR& func) {
-    // Determine the C++ function signature. 
-    // CPM's main() becomes C++ int main()
-    if (func.name == "main") {
-        out << "int main(";
-    } else {
-        // For standard methods (assuming returning double for simplicity)
-        out << "double " << func.name << "(";
+    // Pre-scan: which params are array types (used in array ops)?
+    set<string> paramSet(func.params.begin(), func.params.end());
+    set<string> arrayParams;
+    bool hasValueReturn = false;
+    for (const BasicBlock& block : func.blocks) {
+        for (const TAC& tac : block.code) {
+            if ((tac.op == IROp::ArrayLoad || tac.op == IROp::Length) && paramSet.count(tac.src1))
+                arrayParams.insert(tac.src1);
+            if (tac.op == IROp::ArrayStore && paramSet.count(tac.dst))
+                arrayParams.insert(tac.dst);
+            if (tac.op == IROp::Return && !tac.src1.empty())
+                hasValueReturn = true;
+        }
     }
 
-    // Add parameters (assuming all are doubles)
-    for (size_t i = 0; i < func.params.size(); ++i) { //TODO: main ska inte ha  parameters
-        out << "double " << func.params[i];
+    // Determine return type and emit signature
+    if (func.name == "main") {
+        out << "int main(";
+    } else if (hasValueReturn) {
+        out << "double " << func.name << "(";
+    } else {
+        out << "void " << func.name << "(";
+    }
+
+    for (size_t i = 0; i < func.params.size(); ++i) {
+        if (arrayParams.count(func.params[i]))
+            out << "std::vector<double> " << func.params[i];
+        else
+            out << "double " << func.params[i];
         if (i < func.params.size() - 1) out << ", ";
     }
     out << ") {\n";
 
     // 1. Scan and declare all variables at the top
+    callArgs.clear();
+
+    // Find temps/vars that hold object references — useless in the flat model
+    objectVars.clear();
+    for (const BasicBlock& block : func.blocks) {
+        for (const TAC& tac : block.code) {
+            if (tac.op == IROp::NewObject && !tac.dst.empty())
+                objectVars.insert(tac.dst);
+        }
+    }
+    for (const BasicBlock& block : func.blocks) {
+        for (const TAC& tac : block.code) {
+            if (tac.op == IROp::Assign && objectVars.count(tac.src1))
+                objectVars.insert(tac.dst);
+        }
+    }
+
     collectVariables(func);
 
     // Write out the declarations
@@ -56,6 +119,10 @@ void CppCodeGen::genFunction(const FunctionIR& func) {
             out << "    double " << var << ";\n";
         }
     }
+    for (const string& var : arrayVariables) {
+        out << "    std::vector<double> " << var << ";\n";
+    }
+
     out << "\n";
 
     // 2. Iterate through and emit every basic block
@@ -69,16 +136,25 @@ void CppCodeGen::genFunction(const FunctionIR& func) {
 
 void CppCodeGen::collectVariables(const FunctionIR& func) {
     declaredVariables.clear();
-    // Add parameters to the set so they don't get re-declared locally
+    arrayVariables.clear();
+    set<string> paramSet;
+
     for (const string& p : func.params) {
-        declaredVariables.insert(p);
+        paramSet.insert(p);  // track params but don't declare them again
     }
 
     for (const BasicBlock& block : func.blocks) {
         for (const TAC& tac : block.code) {
-            // The destination of any operation is a variable or temp we need to declare.
-            if (!tac.dst.empty()) {
-                declaredVariables.insert(tac.dst);
+            if (!tac.dst.empty() && !paramSet.count(tac.dst)
+                && !classFieldVars.count(tac.dst) && !classArrayFieldVars.count(tac.dst)
+                && !objectVars.count(tac.dst)) {
+                if (tac.op == IROp::NewArray) {
+                    arrayVariables.insert(tac.dst);
+                } else if (tac.op == IROp::Assign && arrayVariables.count(tac.src1)) {
+                    arrayVariables.insert(tac.dst);
+                } else if (!arrayVariables.count(tac.dst)) {
+                    declaredVariables.insert(tac.dst);
+                }
             }
         }
     }
@@ -86,13 +162,19 @@ void CppCodeGen::collectVariables(const FunctionIR& func) {
 
 
 void CppCodeGen::genBlock(const BasicBlock& block) {
+    if (block.code.empty()) return;
     out << "B" << block.id << ":\n";
     for (const TAC& tac : block.code) {
         genInstruction(tac);
     }
 }
 
-void CppCodeGen::genInstruction(const TAC& tac) { // TODO: lägga till operations t.ex CmpLE
+void CppCodeGen::genInstruction(const TAC& tac) {
+    // Handle silent instructions before emitting indent
+    if (tac.op == IROp::NewObject) return;
+    if (tac.op == IROp::Assign && objectVars.count(tac.src1)) return;
+    if (tac.op == IROp::Param) { callArgs.push_back(tac.src1); return; }
+
     out << "    "; // Indent inside the block
 
     switch (tac.op) {
@@ -148,6 +230,50 @@ void CppCodeGen::genInstruction(const TAC& tac) { // TODO: lägga till operation
         case IROp::Or:
             out << tac.dst << " = (" << tac.src1 << " || " << tac.src2 << ");\n";
             break;
+
+        case IROp::Not:
+            out << tac.dst << " = !" << tac.src1 << ";\n";
+            break;
+
+
+        //function calls
+
+        case IROp::Call: {
+            int argCount = stoi(tac.src2);
+            int startIdx = (int)callArgs.size() - argCount;
+
+            if (voidFunctions.count(tac.extra))
+                out << tac.extra << "(";
+            else
+                out << tac.dst << " = " << tac.extra << "(";
+
+            for (int i = startIdx; i < (int)callArgs.size(); ++i) {
+                if (i > startIdx) out << ", ";
+                out << callArgs[i];
+            }
+            out << ");\n";
+
+            callArgs.erase(callArgs.begin() + startIdx, callArgs.end());
+            break;
+        }
+
+        // Arrays
+        case IROp::NewArray:
+            out << tac.dst << " = {" << tac.extra << "};\n";
+            break;
+        
+        case IROp::ArrayLoad:
+            out << tac.dst << " = " << tac.src1 << "[static_cast<int>(" << tac.src2 << ")];\n";
+            break;
+
+        case IROp::ArrayStore:
+            out << tac.dst << "[static_cast<int>(" << tac.src1 << ")] = " << tac.src2 << ";\n";
+            break;
+
+        case IROp::Length:
+            out << tac.dst << " = " << tac.src1 << ".size();\n";
+            break;
+
 
         // I/O Operations
         case IROp::Print:

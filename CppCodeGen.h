@@ -16,7 +16,15 @@ public:
 private:
     std::ofstream out;
     std::set<std::string> declaredVariables;
+    std::set<std::string> arrayVariables;
+    std::set<std::string> classFieldVars;       // scalar class fields -> declared globally
+    std::set<std::string> classArrayFieldVars;  // array class fields  -> declared globally
+    std::set<std::string> objectVars;           // vars holding object refs -> skipped in flat model
+    std::set<std::string> voidFunctions;        // functions with no value return -> call without assignment
+    std::vector<std::string> callArgs;
 
+
+    
     // Helper methods to generate different parts of the C++ file
     void genHeaders();
     void genFunction(const FunctionIR& func);

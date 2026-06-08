@@ -67,11 +67,15 @@ string toFunctionLabel(const string& ownerClass, const string& name) {
 	return ownerClass.empty() ? name : ownerClass + "_" + name;
 }
 
-} // namespace
+}
 
-ProgramIR IRGenerator::generate(Node* root) {
+ProgramIR IRGenerator::generate(Node* root, SymbolTable* symTable) {
+	symbolTable = symTable;
 	program.functions.clear();
+	program.classFields.clear();
+	program.classArrayFields.clear();
 	classNames.clear();
+	varClassType.clear();
 	tempCounter = 0;
 	blockCounter = 0;
 	currentFunc = nullptr;
@@ -220,9 +224,28 @@ void IRGenerator::genClass(Node* classNode) {
 	currentClassName = classNode->value;
 
 	for (Node* child : classNode->children) {
-		if (!child || child->type != "Methods") {
-			continue;
+		if (!child) continue;
+
+		// Collect class-level field declarations (vars section)
+		if (child->type == "VarDecl" && child->value.empty()) {
+			for (Node* var : child->children) {
+				if (!var || var->value.empty()) continue;
+				bool isArray = false;
+				for (Node* vchild : var->children) {
+					if (vchild && vchild->type == "ArrayType") {
+						isArray = true;
+						break;
+					}
+				}
+				if (isArray) {
+					program.classArrayFields[currentClassName].insert(var->value);
+				} else {
+					program.classFields[currentClassName].insert(var->value);
+				}
+			}
 		}
+
+		if (child->type != "Methods") continue;
 		for (Node* method : child->children) {
 			if (method && method->type == "Method") {
 				genMethod(method, currentClassName);
@@ -282,6 +305,9 @@ void IRGenerator::genMain(Node* mainNode) {
 	}
 }
 
+
+
+
 void IRGenerator::genStmt(Node* stmt) {
 	if (!stmt) {
 		return;
@@ -322,6 +348,7 @@ void IRGenerator::genStmt(Node* stmt) {
 			string rhsValue = genExpr(rhs);
 			if (lhs->type == "ID") {
 				emit(IROp::Assign, lhs->value, rhsValue, "", "", stmt->lineno);
+				if (varClassType.count(rhsValue)) varClassType[lhs->value] = varClassType[rhsValue];
 			}
 		}
 		return;
@@ -341,6 +368,7 @@ void IRGenerator::genStmt(Node* stmt) {
 		if (initExpr) {
 			string rhsValue = genExpr(initExpr);
 			emit(IROp::Assign, stmt->value, rhsValue, "", "", stmt->lineno);
+			if (varClassType.count(rhsValue)) varClassType[stmt->value] = varClassType[rhsValue];
 		}
 		return;
 	}
@@ -360,6 +388,7 @@ void IRGenerator::genStmt(Node* stmt) {
 		string rhsValue = genExpr(rhs);
 		if (lhs->type == "ID") {
 			emit(IROp::Assign, lhs->value, rhsValue, "", "", stmt->lineno);
+			if (varClassType.count(rhsValue)) varClassType[lhs->value] = varClassType[rhsValue];
 		} else if (lhs->type == "ArrayExperssion") {
 			auto lhsIt = lhs->children.begin();
 			Node* base = (lhsIt != lhs->children.end()) ? *lhsIt : nullptr;
@@ -442,10 +471,12 @@ void IRGenerator::genStmt(Node* stmt) {
 		int joinBlockId = newBlock("if_join");
 
 		emit(IROp::IfFalseGoto, "", condValue, "", to_string(joinBlockId), stmt->lineno);
+		emit(IROp::Goto, "", "", "", to_string(thenBlockId), stmt->lineno);
 		addEdge(origin, thenBlockId);
 		addEdge(origin, joinBlockId);
 
 		currentBlockId = thenBlockId;
+
 		genStmt(thenBody);
 		if (!blockTerminates(currentBlockId)) {
 			emit(IROp::Goto, "", "", "", to_string(joinBlockId), stmt->lineno);
@@ -549,7 +580,7 @@ void IRGenerator::genStmt(Node* stmt) {
 			emit(IROp::Goto, "", "", "", to_string(bodyBlockId), stmt->lineno);
 			addEdge(condBlockId, bodyBlockId);
 		}
-		//TODO: Kolla copilot chattttt
+		
 		breakTargets.push_back(exitBlockId);
 		continueTargets.push_back(stepBlockId);
 
@@ -713,10 +744,24 @@ string IRGenerator::genExpr(Node* expr) {
 		string temp = newTemp();
 		if (!isMethodCall && classNames.find(expr->value) != classNames.end()) {
 			emit(IROp::NewObject, temp, "", "", expr->value, expr->lineno);
+			varClassType[temp] = expr->value;
 			return temp;
 		}
 
-		string callee = isMethodCall ? expr->value : toFunctionLabel(currentClassName, expr->value);
+		string callee;
+		if (isMethodCall) {
+			string receiverClass;
+			if (varClassType.count(receiver)) {
+				receiverClass = varClassType[receiver];
+			} else {
+				// symbol table fallback (may be unreliable)
+				Record* rec = symbolTable->lookup(receiver);
+				receiverClass = (rec && !rec->type.empty()) ? rec->type : receiver;
+			}
+			callee = receiverClass + "_" + expr->value;
+		} else {
+			callee = toFunctionLabel(currentClassName, expr->value);
+		}
 		emit(IROp::Call, temp, receiver, to_string(argCount), callee, expr->lineno);
 		return temp;
 	}

@@ -4,6 +4,7 @@
 #include "SemanticAnalyzer.h"
 #include <cstring>
 #include "CppCodeGen.h"
+#include "AsmCodeGen.h"
 
 extern Node *root;
 extern FILE *yyin;
@@ -176,7 +177,7 @@ int main(int argc, char **argv)
                 
                 // 1. Generate IR
                 IRGenerator ir;
-                ProgramIR pir = ir.generate(root);
+                ProgramIR pir = ir.generate(root, &analyzer.st);
                 ir.writeCFGDot(pir, "cfg.dot");
                 
                 // 2. Generate C++ Executable Code
@@ -185,6 +186,12 @@ int main(int argc, char **argv)
                 cpg.generate(pir, outFileName);
 
                 std::cout << "C++ Source successfully generated at: " << outFileName << std::endl;
+
+                // 3. Generate x86-64 Assembly
+                std::string asmFileName = "output.s";
+                AsmCodeGen acg;
+                acg.generate(pir, asmFileName);
+                std::cout << "x86-64 Assembly generated at: " << asmFileName << std::endl;
 
             }
         }

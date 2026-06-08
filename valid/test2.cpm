@@ -6,7 +6,7 @@ main(): int {
 	print(x)
 	print(y)
 	print(z)
-
+	
 	z := z * z
 	print(z)
 	return 0

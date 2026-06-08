@@ -4,17 +4,20 @@
 #include "CFGDotWriter.h"
 #include "IR.h"
 #include "Node.h"
+#include "SymbolTable.h"
+#include <map>
 #include <set>
 #include <string>
 #include <vector>
 
 class IRGenerator {
 public:
-	ProgramIR generate(Node* root);
+	ProgramIR generate(Node* root, SymbolTable* symTable);
 	void printTAC(const ProgramIR& ir);
 	void writeCFGDot(const ProgramIR& ir, const std::string& filename);
 
 private:
+	SymbolTable* symbolTable;
 	ProgramIR program;
 	int tempCounter = 0;
 	int blockCounter = 0;
@@ -22,8 +25,10 @@ private:
 	int currentBlockId = -1;
 	std::string currentClassName;
 	std::set<std::string> classNames;
+	std::map<std::string, std::string> varClassType;  // var/temp -> class name, populated from NewObject
 	std::vector<int> breakTargets;
 	std::vector<int> continueTargets;
+
 
 	std::string newTemp();
 	int newBlock(const std::string& name);

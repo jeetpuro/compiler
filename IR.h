@@ -2,6 +2,7 @@
 #define IR_H
 
 #include <map>
+#include <set>
 #include <string>
 #include <vector>
 
@@ -79,6 +80,8 @@ struct FunctionIR {
 
 struct ProgramIR {
 	std::map<std::string, FunctionIR> functions;
+	std::map<std::string, std::set<std::string>> classFields;       // class -> scalar field names
+	std::map<std::string, std::set<std::string>> classArrayFields;  // class -> array field names
 };
 
 #endif
